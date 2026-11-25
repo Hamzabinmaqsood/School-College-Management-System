@@ -1,0 +1,72 @@
+<section class="management-page">
+  <header class="management-heading"><div><h1>Role management</h1><p>Manage role membership and access to the workspace.</p></div>
+    @if (auth.has('auth.add_group')) { <button mat-flat-button (click)="edit()">Create role</button> }
+  </header>
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  @if (state.success()) { <p class="notice" role="status">{{ state.success() }}</p> }
+  <form class="filter-bar" (ngSubmit)="load()">
+    <label>Search roles <input name="search" [(ngModel)]="search"></label>
+    <label>Status <select name="status" [(ngModel)]="status"><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></select></label>
+    <label>Type <select name="type" [(ngModel)]="type"><option value="">All</option><option value="true">System</option><option value="false">Custom</option></select></label>
+    <button mat-button type="submit">Filter</button>
+  </form>
+  @if (editor()) {
+    <form class="panel management-form" (ngSubmit)="saveRole()" #roleForm="ngForm">
+      <h2>{{ editor() === 'new' ? 'New role' : 'Edit role' }}</h2>
+      <label>Role name <input name="roleName" [(ngModel)]="form.name" required maxlength="150"></label>
+      <label>Description <textarea name="description" [(ngModel)]="form.description" maxlength="400"></textarea></label>
+      <label class="check-label"><input type="checkbox" name="active" [(ngModel)]="form.active"> Active</label>
+      <div class="button-row"><button mat-flat-button type="submit" [disabled]="roleForm.invalid || state.loading()">Save role</button>
+        <button mat-button type="button" (click)="editor.set(null)">Cancel</button></div>
+    </form>
+  }
+  @if (state.loading()) { <p class="notice" role="status">Loading roles…</p> }
+  <div class="panel table-wrap"><table>
+    <caption class="visually-hidden">Roles</caption>
+    <thead><tr><th scope="col">Role</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Members</th><th scope="col">Actions</th></tr></thead>
+    <tbody>
+      @for (role of page()?.results ?? []; track role.id) {
+        <tr><td>{{ role.name }}</td><td>{{ role.system ? 'System' : 'Custom' }}</td><td>{{ role.active ? 'Active' : 'Inactive' }}</td><td>{{ role.member_count }}</td>
+          <td><button mat-button (click)="inspect(role)" [attr.aria-label]="'View ' + role.name">View</button></td></tr>
+      } @empty { <tr><td colspan="5">No roles match your filters.</td></tr> }
+    </tbody>
+  </table>
+  <div class="button-row"><button mat-button [disabled]="!page()?.previous" (click)="load(offset - 20)">Previous</button>
+    <button mat-button [disabled]="!page()?.next" (click)="load(offset + 20)">Next</button></div></div>
+  @if (selected(); as role) {
+    <section class="panel management-form role-matrix">
+      <header class="management-heading"><div><h2>{{ role.name }}</h2><p>{{ role.description }}</p></div>
+        <div class="button-row">
+          @if (role.key !== 'institution-administrator' && auth.has('auth.change_group')) { <button mat-button (click)="edit(role)">Edit role</button> }
+          @if (!role.system && role.member_count === 0 && auth.has('auth.delete_group')) { <button mat-button (click)="remove(role)">Delete role</button> }
+        </div>
+      </header>
+      @if (role.members; as members) {
+        <details><summary>Assigned users ({{ role.member_count }})</summary>
+          <ul>@for (member of members; track member.id) { <li>{{ member.username }}</li> } @empty { <li>No users assigned.</li> }</ul>
+        </details>
+      }
+      <label>Search modules <input [(ngModel)]="moduleSearch"></label>
+      @if (dirty()) { <p class="notice" role="status">Unsaved permission changes.</p> }
+      <div class="table-wrap"><table>
+        <caption class="visually-hidden">Permission matrix</caption>
+        <thead><tr><th scope="col">Module</th>@for (action of actions; track action) { <th scope="col" class="capitalize">{{ action }}</th> }<th scope="col">Module actions</th></tr></thead>
+        <tbody>
+          @for (row of visibleRows(); track row.module) {
+            <tr><th scope="row">{{ row.module }} @if (row.reserved) { <small>Reserved</small> }</th>
+              @for (action of actions; track action) {
+                <td><input type="checkbox" [attr.aria-label]="row.module + ' ' + action"
+                  [checked]="draft().has(row.actions[action] ?? '')" [disabled]="!assignable(row.actions[action])"
+                  (change)="set([row.actions[action]], $any($event.target).checked)"></td>
+              }
+              <td class="matrix-tools"><button mat-button [disabled]="!editable()" (click)="set(keys(row), true)">Select all</button>
+                <button mat-button [disabled]="!editable()" (click)="set(keys(row), false)">Clear</button></td>
+            </tr>
+          }
+        </tbody>
+      </table></div>
+      <div class="button-row"><button mat-flat-button [disabled]="!dirty() || state.loading()" (click)="saveMatrix()">Save permissions</button>
+        <button mat-button [disabled]="!dirty()" (click)="resetMatrix()">Cancel</button></div>
+    </section>
+  }
+</section>

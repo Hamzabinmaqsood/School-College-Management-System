@@ -1,0 +1,166 @@
+<h1>{{ isHistory ? 'Attendance history' : 'Student attendance' }}</h1>
+<nav class="panel attendance-links" aria-label="Attendance">
+  @if (auth.has('attendance.view_attendancesession')) { <a routerLink="/attendance">Register</a> }
+  @if (auth.has('accounts.view_attendance_history')) {
+    <a routerLink="/attendance/history">History</a><a routerLink="/attendance/reports">Reports</a>
+  }
+  @if (auth.has('attendance.view_studentleaverequest')) { <a routerLink="/attendance/leaves">Student leave</a> }
+  @if (auth.has('accounts.manage_attendance_settings') || auth.has('attendance.view_attendanceholiday') ||
+        auth.has('accounts.manage_teaching_assignments')) { <a routerLink="/attendance/settings">Settings</a> }
+</nav>
+@if (state.loading()) { <p role="status">Loading attendance…</p> }
+@if (state.error()) { <p class="error" role="alert">{{ state.error() }}</p> }
+@if (state.success()) { <p role="status">{{ state.success() }}</p> }
+@if (isHistory) {
+  <section class="panel">
+    <div class="attendance-fields">
+      <label>Date <input type="date" [(ngModel)]="filter.date" (change)="loadHistory()"></label>
+      <label>Calendar month <input type="month" [(ngModel)]="historyMonth" (change)="showMonth()"></label>
+      <label>From <input type="date" [(ngModel)]="historyRange.from_date"></label>
+      <label>Through <input type="date" [(ngModel)]="historyRange.to_date"></label>
+      <label>Mode <select [(ngModel)]="historyRange.mode"><option value="">All modes</option>
+        <option value="daily">Daily</option><option value="period">Subject period</option></select></label>
+      <label>Class, section or subject <input [(ngModel)]="historyRange.search"></label>
+      <button mat-flat-button (click)="loadHistory()" [disabled]="state.loading()">Filter registers</button>
+      <button mat-button (click)="filter.date = ''; loadHistory()">Clear single date</button>
+    </div>
+    <div class="attendance-calendar">
+    @for (item of history(); track item.id) {
+      <article>
+      @if (auth.has('attendance.view_attendancesession')) {
+        <p><a routerLink="/attendance" [queryParams]="{register: item.id}">{{ item.date }} · {{ item.class_name }}
+          {{ item.section_name }} · {{ item.subject_name || 'Daily' }} {{ item.period }} · {{ item.status }}</a></p>
+      } @else {
+        <p>{{ item.date }} · {{ item.class_name }} {{ item.section_name }} · {{ item.subject_name || 'Daily' }}
+          {{ item.period }} · {{ item.status }}</p>
+      }
+      </article>
+    } @empty { @if (!state.loading()) { <p>No registers match these filters.</p> } }
+    </div>
+    <div class="attendance-links">
+      <button mat-button (click)="loadHistory(historyOffset - 30)" [disabled]="!historyOffset || state.loading()">Previous</button>
+      <button mat-button (click)="loadHistory(historyOffset + 30)" [disabled]="historyOffset + 30 >= historyCount() || state.loading()">Next</button>
+    </div>
+  </section>
+} @else if (context(); as ctx) {
+  <section class="panel">
+    <h2>Find a register</h2>
+    <div class="attendance-fields">
+      <label>Date <input type="date" [(ngModel)]="filter.date"></label>
+      @if (ctx.broad) {
+        <label>Mode <select [(ngModel)]="filter.mode"><option value="daily">Daily</option><option value="period">Subject period</option></select></label>
+        <label>Academic session <select [(ngModel)]="filter.session"><option value="">Choose a session</option>
+          @for (item of sessions(); track item.id) { <option [value]="item.id">{{ item['name'] }}</option> }
+        </select></label>
+        <label>Class <select [(ngModel)]="filter.academic_class" (ngModelChange)="filter.section = ''"><option value="">Choose a class</option>
+          @for (item of classes(); track item.id) { <option [value]="item.id">{{ item['name'] }}</option> }
+        </select></label>
+        <label>Section <select [(ngModel)]="filter.section"><option value="">Unsectioned</option>
+          @for (item of sections(); track item.id) {
+            @if (item['academic_class'] === filter.academic_class) { <option [value]="item.id">{{ item['name'] }}</option> }
+          }
+        </select></label>
+        @if (filter.mode === 'period') {
+          <label>Subject <select [(ngModel)]="filter.subject"><option value="">Choose a subject</option>
+            @for (item of subjects(); track item.id) { <option [value]="item.id">{{ item['name'] }}</option> }
+          </select></label>
+        }
+      } @else {
+        <label>Teaching group <select [(ngModel)]="group"><option value="">Choose a group</option>
+          @for (item of ctx.assignments; track $index) {
+            <option [value]="$index">{{ item.session_name }} · {{ item.class_name }} {{ item.section_name }} · {{ item.subject_name || 'Daily' }}</option>
+          }
+        </select></label>
+      }
+      @if ((ctx.broad && filter.mode === 'period') || (!ctx.broad && group && ctx.assignments[+group]?.subject)) {
+        <label>Period <input [(ngModel)]="filter.period" maxlength="32" placeholder="e.g. P1"></label>
+        <label>Start time <input type="time" [(ngModel)]="filter.start_time"></label>
+        <label>End time <input type="time" [(ngModel)]="filter.end_time"></label>
+      }
+      <button mat-flat-button (click)="loadRoster()" [disabled]="!criteria() || state.loading()">Load roster</button>
+    </div>
+    @if (!ctx.broad && !ctx.assignments.length) { <p>No active teaching assignments.</p> }
+  </section>
+}
+@if (roster(); as preview) {
+  @if (!preview.register) {
+    <section class="panel">
+      <h2>Roster preview</h2>
+      <p>{{ preview.roster.length }} eligible students. {{ preview.reserved || 0 }} already included in another daily register.</p>
+      @if (!preview.working_day) {
+        <p>This is a non-teaching date.</p>
+        @if (auth.has('accounts.override_attendance_calendar')) { <label>Override reason <input [(ngModel)]="overrideReason" maxlength="300"></label> }
+      }
+      <ul>@for (row of preview.roster; track row.student) { <li>{{ row.student_name }} · {{ row.admission_number }}</li> }</ul>
+      @if (can('attendance.add_attendancesession')) {
+        <button mat-flat-button (click)="start()" [disabled]="state.loading() || !preview.roster.length ||
+          (!preview.working_day && (!auth.has('accounts.override_attendance_calendar') || !overrideReason.trim()))">Start draft</button>
+      } @else { <p>Your current permissions or license allow read-only access.</p> }
+    </section>
+  }
+}
+@if (register(); as current) {
+  <section class="panel">
+    <h2>{{ current.class_name }} {{ current.section_name }} · {{ current.date }}</h2>
+    <p>{{ current.subject_name || 'Daily attendance' }} {{ current.period }} · {{ current.status }} · {{ current.records.length }} students</p>
+    @if (current.schedule_snapshot?.entry) {
+      <p>Published timetable · {{ current.schedule_snapshot?.starts_at?.slice(0,5) }}–{{ current.schedule_snapshot?.ends_at?.slice(0,5) }}</p>
+    }
+    @if (current.status === 'draft' && can('attendance.change_attendancerecord')) {
+      <div class="attendance-fields">
+        <label>Bulk mark <select [(ngModel)]="bulkMark">@for (status of marks; track status) { <option>{{ status }}</option> }</select></label>
+        <button mat-stroked-button (click)="bulk(current)">Apply to all</button>
+      </div>
+    }
+    <div class="attendance-rows">
+      @for (row of current.records; track row.id) {
+        <article>
+          <strong>{{ row.student_name }}</strong>
+          <small>{{ row.admission_number }} @if (row.roll_number) { · Roll {{ row.roll_number }} }</small>
+          @if (row.approved_leave) { <small>Approved leave</small> }
+          @if (current.status === 'draft' && can('attendance.change_attendancerecord')) {
+            <fieldset><legend>Mark for {{ row.student_name }}</legend>
+              @for (status of marks; track status) {
+                <label><input type="radio" [name]="row.id" [checked]="mark(row).status === status" (change)="edit(row, {status})">{{ status }}</label>
+              }
+            </fieldset>
+            <label>Remarks <input [ngModel]="mark(row).remarks" (ngModelChange)="edit(row, {remarks: $event})" maxlength="300"></label>
+          } @else {
+            <p>{{ row.status }} @if (row.remarks) { · {{ row.remarks }} }</p>
+          }
+          @if (current.status === 'finalized' && can('attendance.add_attendancecorrection')) {
+            @if (correction === row.id) {
+              <div class="attendance-fields">
+                <label>Corrected mark <select [(ngModel)]="correctedStatus">@for (status of marks; track status) { <option>{{ status }}</option> }</select></label>
+                <label>Remarks <input [(ngModel)]="correctedRemarks" maxlength="300"></label>
+                <label>Reason <input [(ngModel)]="reason" maxlength="400"></label>
+                <button mat-flat-button (click)="correct(current, row)" [disabled]="!reason.trim() || state.loading()">Save correction</button>
+                @if (row.approved_leave) {
+                  <button mat-stroked-button (click)="correct(current, row, true)" [disabled]="!reason.trim() || state.loading()">Reconcile approved leave</button>
+                }
+                <button mat-button (click)="correction = ''">Cancel</button>
+              </div>
+            } @else { <button mat-button (click)="beginCorrection(row)">Correct mark</button> }
+          }
+          @if (row.corrections?.length) {
+            <details><summary>Correction history</summary>
+              @for (revision of row.corrections; track revision.id) {
+                <p>{{ revision.at }} · {{ revision.previous_status }} → {{ revision.status }} · {{ revision.reason }}</p>
+              }
+            </details>
+          }
+        </article>
+      } @empty { <p>This register has an empty roster.</p> }
+    </div>
+    @if (current.status === 'draft') {
+      <div class="attendance-fields">
+        @if (can('attendance.change_attendancerecord')) {
+          <button mat-flat-button (click)="save(current)" [disabled]="state.loading() || !Object.keys(edits()).length">Save draft</button>
+        }
+        @if (can('accounts.finalize_attendance')) {
+          <button mat-stroked-button (click)="finalize(current)" [disabled]="state.loading() || !!Object.keys(edits()).length">Finalize register</button>
+        }
+      </div>
+    }
+  </section>
+}

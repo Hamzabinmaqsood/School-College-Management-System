@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {"analytics": false},
+  "projects": {
+    "school": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/school",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "styles": ["src/styles.scss"]
+          },
+          "configurations": {
+            "production": {"outputHashing": "all"},
+            "development": {"optimization": false, "sourceMap": true}
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {"proxyConfig": "proxy.conf.cjs"},
+          "configurations": {
+            "development": {"buildTarget": "school:build:development"},
+            "production": {"buildTarget": "school:build:production"}
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,128 @@
+<section class="intro">
+  <div><h1>Dashboard</h1><p>{{ auth.branding()?.name || 'Institution overview' }}</p></div>
+  <div class="status" role="status">
+    <span><i [class]="connectivity.status().backend"></i>Backend {{ connectivity.status().backend }}</span>
+    <span><i [class]="connectivity.status().database"></i>Database {{ connectivity.status().database }}</span>
+    <button mat-icon-button type="button" aria-label="Refresh connectivity" [disabled]="connectivity.status().backend === 'checking'" (click)="connectivity.refresh()"><mat-icon>refresh</mat-icon></button>
+  </div>
+</section>
+<section class="panel subscription-widget" aria-label="Subscription status">
+  <div class="panel-heading">
+    <div><h2>Subscription</h2>
+    @if (subscription(); as current) {
+      <p><span class="license-status" [class]="subscriptionTone(current.status)">{{ subscriptionLabel(current.status) }}</span>
+      @if (current.days_remaining !== undefined) { <span> · {{ current.days_remaining }} days remaining</span> }</p>
+      @if (subscriptionReminder(current); as message) { <p>{{ message }}</p> }
+    } @else { <p>{{ subscriptionLoaded() ? 'Subscription status is unavailable.' : 'Checking subscription…' }}</p> }</div>
+    @if (auth.has('accounts.view_subscription')) { <a mat-button routerLink="/subscription">Subscription details</a> }
+  </div>
+</section>
+<div class="data-heading"><h2>Institution overview</h2></div>
+<section class="metrics" aria-label="Institution metrics">
+  @for (metric of metrics; track metric.label) {
+    <article class="panel metric">
+      <span class="tile" [class]="metric.tone"><mat-icon>{{ metric.icon }}</mat-icon></span>
+      <h3>{{ metric.label === 'Total Students' ? 'Active students' : metric.label }}</h3>
+      @if (metric.label === 'Total Students' && studentMetrics(); as stats) {
+        <strong>{{ stats.active_students }}</strong><p>Institution student register</p>
+      } @else if (metric.icon === "payments" && fees(); as financial) {
+        <strong>PKR {{ financial.collected_this_month }}</strong>
+        <p>PKR {{ financial.outstanding }} outstanding · PKR {{ financial.overdue }} overdue</p>
+      } @else if (metric.icon === 'fact_check' && auth.has('accounts.view_attendance')) {
+        @if (attendance(); as current) {
+          <strong>{{ current.totals.percentage === null ? '—' : current.totals.percentage + '%' }}</strong>
+          <p>{{ current.status === 'empty' ? 'No attendance recorded' :
+            current.status === 'incomplete' ? 'Incomplete attendance' : 'Finalized attendance' }}</p>
+          <p>{{ current.mode === 'daily' ? 'Students' : 'Period marks' }} · {{ current.totals.present }} present ·
+            {{ current.totals.absent }} absent · {{ current.totals.late }} late</p>
+        } @else { <strong>—</strong><p>{{ attendanceLoaded() ? 'Attendance unavailable' : 'Loading attendance…' }}</p> }
+      } @else { <strong>—</strong><p>{{ metric.label === 'Total Students' ? 'Student data unavailable' : 'Data source planned' }}</p> }
+    </article>
+  }
+</section>
+<section class="charts">
+  <article class="panel chart">
+    <div class="panel-heading"><h2>Revenue and expenses</h2><span class="tile blue"><mat-icon>bar_chart</mat-icon></span></div>
+    @if (fees(); as financial) {
+      <h3>Fee collection trend</h3>
+      @for (month of financial.trend; track month.period) { <p>{{ month.period }} · PKR {{ month.amount }}</p> }
+      @empty { <p>No fee collections recorded.</p> }
+    } @else { <p>Fee collection data is unavailable.</p> }
+  </article>
+  <article class="panel chart">
+    <div class="panel-heading"><h2>Student attendance</h2><span class="tile green"><mat-icon>insights</mat-icon></span></div>
+    @if (attendance(); as current) {
+      <h3>Attendance trend</h3>
+      @for (point of current.trend; track point.date) {
+        <div class="attendance-fields"><span>{{ point.date }}</span>
+          @if (point.percentage !== null) {
+            <meter min="0" max="100" [value]="point.percentage" [attr.aria-label]="point.date + ' attendance'"></meter>
+            <span>{{ point.percentage }}%</span>
+          } @else { <span>No finalized marks</span> }
+        </div>
+      } @empty { <p>No recent attendance recorded.</p> }
+      <h3>Class attendance</h3>
+      @for (group of current.classes; track $index) {
+        <p>{{ group['register__academic_class__name'] }} {{ group['register__section__name'] }} ·
+          {{ group['percentage'] === null ? 'No finalized marks' : group['percentage'] + '%' }}</p>
+      } @empty { <p>No class registers for today.</p> }
+    } @else { <p>{{ auth.has('accounts.view_attendance') && !attendanceLoaded() ? 'Loading attendance…' : 'Attendance unavailable' }}</p> }
+  </article>
+</section>
+<section class="charts lower">
+  <article class="panel">
+    <div class="panel-heading"><h2>Recent activity</h2><mat-icon>history</mat-icon></div>
+    @if (auth.has('audit.view_auditevent')) {
+      <div class="actions"><a routerLink="/audit"><mat-icon>history</mat-icon>Open audit logs</a></div>
+    } @else { <p class="empty-chart">No activity summary is available.</p> }
+  </article>
+  <article class="panel">
+    <div class="panel-heading"><h2>Quick actions</h2></div>
+    <div class="actions">
+      @for (action of actions(); track action.path) {
+        <a [routerLink]="['/', action.path]"><mat-icon>{{ action.icon }}</mat-icon>{{ action.label }}</a>
+      } @empty { <p>No administration actions are assigned to your account.</p> }
+    </div>
+  </article>
+</section>
+
+@if (studentMetrics(); as stats) {
+  <section class="panel management-form dashboard-roster">
+    <h2>{{ stats.session_name || 'Academic enrollment' }}</h2>
+    <div class="summary"><span>Current enrollments <strong>{{ stats.current_enrollments }}</strong></span>
+      <span>New admissions <strong>{{ stats.new_admissions }}</strong></span></div>
+    <h3>Class distribution</h3>
+    @for (entry of stats.class_distribution; track entry.academic_class_id) {
+      <div class="class-metric"><span>{{ entry.academic_class__name }}</span>
+        <span class="track"><i [style.width.%]="entry.count / (stats.current_enrollments || 1) * 100"></i></span>
+        <strong>{{ entry.count }}</strong></div>
+    } @empty { <p>No active enrollments in the current session.</p> }
+  </section>
+}
+
+@if (exams(); as summary) {
+  <section class="panel">
+    <div class="panel-heading"><h2>Examinations</h2><mat-icon>assignment</mat-icon></div>
+    <p>{{ summary.active }} active · {{ summary.pending }} pending submissions · {{ summary.awaiting }} awaiting approval · {{ summary.published }} published</p>
+    @if (summary.latest; as latest) { <p>{{ latest.exam }} · {{ latest.outcomes['pass'] || 0 }} passed · {{ latest.outcomes['fail'] || 0 }} failed</p> }
+    @if (auth.has('accounts.view_examinations')) { <a mat-button routerLink="/examinations">Open examinations</a> }
+  </section>
+}
+
+@if (hr(); as staff) {
+  <section class="panel">
+    <div class="panel-heading"><h2>Human resources</h2><mat-icon>badge</mat-icon></div>
+    <p>{{ staff.employees }} employees · {{ staff.active }} active · {{ staff.teachers }} teaching staff</p>
+    @if (staff.present !== undefined) { <p>{{ staff.present }} present today</p> }
+    @if (staff.on_leave !== undefined) { <p>{{ staff.on_leave }} on approved leave · {{ staff.pending }} pending requests</p> }
+    <a mat-button routerLink="/hr">Open human resources</a>
+  </section>
+}
+
+
+@if (auth.has('accounts.view_timetable') || auth.has('accounts.view_own_timetable')) {
+  <section class="panel"><h2>Timetable</h2>
+    @if (timetable()) { <p>{{ scheduledLessons() }} lessons today · {{ substitutions() }} substitutions</p> }
+    <a mat-stroked-button routerLink="/timetable">Open published schedule</a>
+  </section>
+}

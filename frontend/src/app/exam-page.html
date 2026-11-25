@@ -1,0 +1,223 @@
+<h1>{{ config[0] }}</h1>
+<nav class="attendance-links" aria-label="Examinations">
+  @for (item of menu; track item[0]) {
+    @if (auth.has(item[1][1])) {
+      <a [routerLink]="item[0] === 'overview' ? '/examinations' : '/examinations/' + item[0]">{{ item[1][0] }}</a>
+    }
+  }
+</nav>
+@if (state.loading()) { <p role="status">Loading examination records…</p> }
+@if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+@if (state.success()) { <p role="status">{{ state.success() }}</p> }
+@if (config[2] && !can(config[2]) && !state.loading()) {
+  <p>Editing requires an active examination entitlement and the corresponding permission.</p>
+}
+@if (config[2] && can(config[2]) && fields.length) {
+  <section class="panel">
+    <h2>{{ editing() ? 'Edit record' : page === 'results' ? 'Calculate results' : 'New record' }}</h2>
+    @if (page === 'settings') {
+      <div class="attendance-fields">
+        <label>Find student <input [(ngModel)]="search"></label>
+        <button mat-button (click)="refreshEnrollmentChoices()" [disabled]="state.loading()">Search roster</button>
+      </div>
+    }
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="attendance-fields">
+        @for (field of fields; track field.key) {
+          @if (field.type === 'optional-subjects') {
+            <fieldset>
+              <legend>Optional subjects</legend>
+              @for (item of (choices()['optional'] ?? []); track item['id']) {
+                <label><input type="checkbox" (change)="chooseOptional(item,$any($event.target).checked)"
+                  [checked]="optionalChecked(item)"> {{ item['subject_name'] }}</label>
+              } @empty { <p>No optional subjects for the selected class.</p> }
+            </fieldset>
+          } @else {
+          <label [attr.for]="field.key">{{ field.label }}
+            @if (field.lookup) {
+              <select [id]="field.key" [formControlName]="field.key"><option value="">Select</option>
+                @for (row of options(field); track row['id']) {
+                  <option [value]="row['id']">{{ name(row) }}</option>
+                }
+              </select>
+            } @else if (field.options) {
+              <select [id]="field.key" [formControlName]="field.key">
+                @for (option of field.options; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }
+              </select>
+            } @else { <input [id]="field.key" [type]="field.type || 'text'" [formControlName]="field.key"> }
+          </label>
+          }
+        }
+      </div>
+      @if (nested.length) {
+        <h3>{{ page === 'grading' ? 'Grade bands' : 'Assessment components' }}</h3>
+        @for (line of lines(); track line; let index = $index) {
+          <div class="attendance-fields" [formGroup]="line">
+            @for (field of nested; track field.key) {
+              <label [attr.for]="'line-' + index + '-' + field.key">{{ field.label }}
+                <input [id]="'line-' + index + '-' + field.key" [type]="field.type || 'text'" [formControlName]="field.key">
+              </label>
+            }
+            @if (lines().length > 1) {
+              <button mat-button type="button" (click)="removeLine(index)">Remove row</button>
+            }
+          </div>
+        }
+        <button mat-button type="button" (click)="addLine()">Add row</button>
+      }
+      <button mat-flat-button [disabled]="state.loading() || form.invalid">{{ page === 'results' ? 'Calculate results' : 'Save record' }}</button>
+    </form>
+  </section>
+}
+<section class="panel">
+  <div class="attendance-fields">
+    @if (page === 'reports') {
+      <label>Report <select [(ngModel)]="report">
+        @for (entry of reports; track entry) { <option [value]="entry">{{ label(entry) }}</option> }
+      </select></label>
+      @for (filter of [['exam','exams'],['session','academic-sessions'],['academic_class','classes'],
+                       ['section','sections'],['subject','subjects']]; track filter[0]) {
+        <label>{{ label(filter[0]!) }} <select [(ngModel)]="$any(filters)[filter[0]!]"><option value="">All</option>
+          @for (row of (choices()[filter[1]!] ?? []); track row['id']) { <option [value]="row['id']">{{ name(row) }}</option> }
+        </select></label>
+      }
+      @if (auth.has('accounts.export_exam_results')) {
+        <a [href]="printLink()">CSV export</a><a [href]="printLink() + '&output=print'" target="_blank" rel="noopener">Printable report</a>
+      }
+    } @else { <label>Search records <input [(ngModel)]="search" (keyup.enter)="reload()"></label> }
+    @if (resource === 'marks') {
+      @for (field of markFilterFields; track field[0]) {
+        <label>{{ field[1] }} <select [(ngModel)]="markFilters[field[0]!]">
+          <option value="">All</option>
+          @for (entry of (choices()[field[0]!] ?? []); track entry['id']) {
+            <option [value]="entry['id']">{{ entry['name'] }}</option>
+          }
+        </select></label>
+      }
+    }
+    <button mat-stroked-button (click)="reload()" [disabled]="state.loading()">Apply filters</button>
+    @if (page === 'schedules') { <a href="/api/v1/examinations/date-sheet/" target="_blank" rel="noopener">Print date sheet</a> }
+  </div>
+  @if (rows()[0]; as first) {
+    <div class="attendance-table" role="region" tabindex="0" aria-label="Examination records">
+      <table><thead><tr>
+        @for (key of columns(first); track key) { <th scope="col">{{ label(key) }}</th> }
+        @if (page !== 'reports') { <th scope="col">Actions</th> }
+      </tr></thead>
+      <tbody>@for (row of rows(); track $index) {
+        <tr>@for (key of columns(first); track key) { <td>{{ row[key] ?? '—' }}</td> }
+          @if (page !== 'reports') { <td>
+            @if (['marks','review','results'].includes(page)) {
+              <button mat-button (click)="select(row)" [disabled]="state.loading()">Open</button>
+            }
+            @if (config[2] && can(config[2]) && (['types','schedules','subjects'].includes(page) || (page === 'create' && row['status'] === 'draft'))) {
+              <button mat-button (click)="edit(row)">Edit</button>
+            }
+            @if (['overview','create'].includes(page) && can('accounts.manage_examinations')) {
+              @if (row['status'] === 'draft') { <button mat-button (click)="run(row,'schedule')">Schedule exam</button> }
+              @if (row['status'] === 'draft' || row['status'] === 'scheduled') {
+                <button mat-button (click)="run(row,'open')">Open marks</button>
+              }
+              @if (row['status'] === 'open') { <button mat-button (click)="run(row,'close')">Close exam</button> }
+            }
+          </td> }
+        </tr>
+      }</tbody></table>
+    </div>
+    <div class="attendance-links">
+      <button mat-button [disabled]="offset === 0 || state.loading()" (click)="reload(offset-25)">Previous</button>
+      <span>{{ offset + 1 }}–{{ offset + rows().length }} of {{ count }}</span>
+      <button mat-button [disabled]="offset + 25 >= count || state.loading()" (click)="reload(offset+25)">Next</button>
+    </div>
+  } @else if (!state.loading()) { <p>No examination records match these filters.</p> }
+</section>
+@if (submission(); as record) {
+  <section class="panel">
+    <h2>Assessment roster</h2>
+    <p>{{ record.status }} · Maximum {{ record.maximum }} · Version {{ record.version }}</p>
+    <div class="attendance-table" role="region" tabindex="0" aria-label="Student marks">
+      <table><thead><tr><th scope="col">Roll</th><th scope="col">Admission</th><th scope="col">Student</th>
+        <th scope="col">Obtained</th><th scope="col">Status</th><th scope="col">Remarks</th></tr></thead>
+      <tbody>@for (row of record.marks; track row.registration) {
+        <tr><td>{{ row.roll }}</td><td>{{ row.admission }}</td><td>{{ row.student }}</td>
+          @if (record.status === 'draft' && can('accounts.enter_exam_marks') && can('accounts.update_exam_marks')) {
+            <td><input inputmode="decimal" [attr.aria-label]="'Marks for ' + row.student"
+              [attr.aria-invalid]="!valid(row)" [ngModel]="row.obtained"
+              (ngModelChange)="updateMark(row,'obtained',$event)"></td>
+            <td><select [attr.aria-label]="'Status for ' + row.student" [ngModel]="row.status"
+              (ngModelChange)="updateMark(row,'status',$event)">
+              @for (status of statuses; track status) { <option [value]="status">{{ status }}</option> }
+            </select></td>
+            <td><input [attr.aria-label]="'Remarks for ' + row.student" [ngModel]="row.remarks"
+                       (ngModelChange)="updateMark(row,'remarks',$event)" maxlength="300"></td>
+          } @else { <td>{{ row.obtained ?? '—' }}</td><td>{{ row.status }}</td><td>{{ row.remarks }}</td> }
+        </tr>
+      }</tbody></table>
+    </div>
+    <div class="attendance-links">
+      <button mat-button (click)="select({id:record.id})" [disabled]="state.loading()">Refresh roster</button>
+      @if (record.status === 'draft') {
+        @if (can('accounts.update_exam_marks') && can('accounts.enter_exam_marks')) {
+          <button mat-flat-button (click)="marksAction('save')" [disabled]="!changed() || state.loading() || invalid(record)">Save draft</button>
+        }
+        @if (can('accounts.submit_exam_marks')) {
+          <button mat-stroked-button (click)="marksAction('submit')" [disabled]="changed() || state.loading()">Submit for verification</button>
+        }
+      } @else if (can('accounts.verify_exam_marks')) {
+        @if (record.status === 'submitted') {
+          <button mat-flat-button (click)="marksAction('verify')" [disabled]="state.loading()">Verify marks</button>
+        }
+        <label>Return reason <input [(ngModel)]="reason" maxlength="400"></label>
+        <button mat-stroked-button (click)="marksAction('return')" [disabled]="!reason.trim() || state.loading()">Return marks</button>
+      }
+    </div>
+  </section>
+}
+@if (result(); as record) {
+  <section class="panel">
+    <h2>Result revision {{ record['revision'] }}</h2>
+    <p>{{ record['status'] }} · {{ record['records'] }} students</p>
+    <div class="attendance-links">
+      @if (record['status'] === 'draft' && can('accounts.approve_exam_results')) {
+        <button mat-flat-button (click)="run(record,'approve')" [disabled]="state.loading()">Approve results</button>
+      }
+      @if (record['status'] === 'approved' && can('accounts.publish_exam_results')) {
+        <button mat-flat-button (click)="run(record,'publish',{confirmed:true})" [disabled]="state.loading()">Publish results</button>
+      }
+      @if (record['status'] === 'published' && can('accounts.publish_exam_results')) {
+        <label>Withdrawal reason <input [(ngModel)]="reason" maxlength="400"></label>
+        <button mat-stroked-button (click)="run(record,'withdraw',{reason})" [disabled]="!reason.trim() || state.loading()">Withdraw publication</button>
+      }
+    </div>
+    @for (row of resultRows(record); track row['id']) {
+      <article>
+        <p>{{ row['student'] }} · {{ row['status'] }} · {{ row['percentage'] ?? '—' }}% · {{ row['grade'] }}</p>
+        @if (record['status'] === 'withdrawn' && can('accounts.correct_exam_results') && correctionOptions(row).length) {
+          @if (correcting === row['id']) {
+            <form [formGroup]="revisionForm" (ngSubmit)="correct(record,row)" class="attendance-fields">
+              <label>Component <select formControlName="component"><option value="">Select component</option>
+                @for (item of correctionOptions(row); track item.component) {
+                  <option [value]="item.component">{{ item.name }}</option>
+                }
+              </select></label>
+              <label>Outcome <select formControlName="status">
+                @for (status of statuses.slice(1); track status) { <option [value]="status">{{ status }}</option> }
+              </select></label>
+              <label>Obtained <input formControlName="obtained" inputmode="decimal"></label>
+              <label>Remarks <input formControlName="remarks" maxlength="300"></label>
+              <label>Reason <input formControlName="reason" maxlength="400"></label>
+              <button mat-flat-button [disabled]="revisionForm.invalid || state.loading()">Save correction</button>
+            </form>
+          } @else { <button mat-button (click)="correcting = $any(row['id'])">Correct result</button> }
+        }
+        @if (['published','withdrawn'].includes($any(record['status'])) && auth.has('accounts.print_exam_results')) {
+          <a [href]="'/api/v1/examinations/results/' + row['id'] + '/report-card/'" target="_blank" rel="noopener">Report card</a>
+        }
+      </article>
+    }
+    <div class="attendance-links">
+      <button mat-button (click)="moreResults(record,-25)" [disabled]="resultOffset === 0 || state.loading()">Previous results</button>
+      <button mat-button (click)="moreResults(record,25)" [disabled]="resultOffset + 25 >= $any(record['records']) || state.loading()">Next results</button>
+    </div>
+  </section>
+}

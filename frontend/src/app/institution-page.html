@@ -1,0 +1,42 @@
+<section class="management-page" [class.setup-page]="setup">
+  <header class="management-heading">
+    <div><h1>{{ setup ? 'Set up your institution' : 'Institution settings' }}</h1>
+      <p>Manage the profile and regional defaults for this installation.</p></div>
+    @if (setup) { <button mat-button type="button" (click)="leave()">Sign out</button> }
+  </header>
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  @if (state.success()) { <p class="notice" role="status">{{ state.success() }}</p> }
+  <form class="panel management-form" (ngSubmit)="save()" #institutionForm="ngForm">
+    <fieldset [disabled]="state.loading() || !auth.has('accounts.change_institution')" class="field-grid">
+      <label class="logo-field">Institution logo
+        @if (preview(); as image) { <img [src]="image" alt="Institution logo preview" width="72" height="72"> }
+        <input type="file" accept="image/png,image/jpeg,image/webp" (change)="choose($event)">
+        <small>PNG, JPEG or WebP up to 1 MB</small>
+      </label>
+      <label>Institution type
+        <select name="institution_type" [(ngModel)]="data.institution_type">
+          <option value="school">School</option><option value="college">College</option>
+          <option value="academy">Academy</option><option value="other">Other</option>
+        </select>
+      </label>
+      @for (field of fields; track field[0]) {
+        @if (field[0] === 'address') {
+          <label>Address <textarea name="address" [(ngModel)]="data.address"></textarea></label>
+        } @else {
+          <label>{{ field[1] }} <input [name]="field[0]" [attr.name]="field[0]" [(ngModel)]="data[field[0]]"
+            [required]="field[0] === 'code' || field[0] === 'name'" [type]="field[0] === 'email' ? 'email' : 'text'"></label>
+        }
+      }
+      <label>Default language
+        <select name="language" [(ngModel)]="data.language">
+          <option value="en">English</option><option value="ur">Urdu</option>
+        </select>
+      </label>
+    </fieldset>
+    @if (auth.has('accounts.change_institution')) {
+      <button mat-flat-button type="submit" [disabled]="institutionForm.invalid || state.loading()">
+        {{ state.loading() ? 'Working…' : 'Save institution' }}
+      </button>
+    }
+  </form>
+</section>

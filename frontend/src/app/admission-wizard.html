@@ -1,0 +1,68 @@
+<section class="management-page">
+  <header class="management-heading"><div><h1>New admission</h1><p>Review the student and academic placement before saving.</p></div>
+    <a mat-button routerLink="/admissions">Back to admissions</a></header>
+  <ol class="wizard-steps" aria-label="Admission steps">
+    @for (label of steps; track label; let number = $index) {
+      <li [attr.aria-current]="number === step() ? 'step' : null" [class.current]="number === step()">{{ label }}</li>
+    }
+  </ol>
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  @if (!workspace.license()?.write_allowed) { <p class="notice">Your subscription currently limits this form to review.</p> }
+  <section class="panel management-form">
+    <h2>{{ steps[step()] }}</h2>
+    @switch (step()) {
+      @case (0) {
+        <p>Leave the admission number blank to generate the next number automatically.</p>
+        <app-student-fields [form]="student" />
+      }
+      @case (1) {
+        @for (group of guardians(); track group; let index = $index) {
+          <div class="related-card">
+            <app-guardian-fields [form]="group" [choices]="choices()" [canCreate]="auth.has('students.add_guardian')" />
+            <button mat-button type="button" (click)="removeGuardian(index)">Remove guardian</button>
+          </div>
+        }
+        @if (auth.has('accounts.manage_guardian_links') && guardians().length < 10) {
+          <button mat-button type="button" (click)="addGuardian()">Add guardian</button>
+        }
+        @if (!guardians().length) { <p>Guardian links are optional during admission.</p> }
+      }
+      @case (2) {
+        <app-placement [form]="placement" [sessions]="sessions()" [classes]="classes()" [sections]="sections()" />
+        @if (!sessions().length || !classes().length) { <p>Set up an active academic session and class before admitting students.</p> }
+      }
+      @case (3) {
+        @if (documentTypes().length) {
+          <form [formGroup]="fileInfo" class="filter-bar" (ngSubmit)="selectFile(fileInput)">
+            <label>Document type <select formControlName="kind"><option value="">Select type</option>
+              @for (kind of documentTypes(); track kind) { <option [value]="kind">{{ kind }}</option> }
+            </select></label>
+            <label>Label <input formControlName="label" maxlength="120"></label>
+            <label>Image file <input #fileInput type="file" accept="image/png,image/jpeg,image/webp"></label>
+            <button mat-button type="submit" [disabled]="fileInfo.invalid">Queue document</button>
+          </form>
+        }
+        <ul>@for (item of documents(); track item; let index = $index) {
+          <li>{{ item.label }} · {{ item.kind }} <button mat-button (click)="removeDocument(index)">Remove</button></li>
+        } @empty { <li>No documents selected.</li> }</ul>
+      }
+      @case (4) {
+        <dl class="license-details">
+          <div><dt>Student</dt><dd>{{ student.value['first_name'] }} {{ student.value['last_name'] }}</dd></div>
+          <div><dt>Admission number</dt><dd>{{ student.value['admission_number'] || 'Generated when saved' }}</dd></div>
+          <div><dt>Admission date</dt><dd>{{ student.value['admission_date'] }}</dd></div>
+          <div><dt>Session</dt><dd>{{ display(sessions(), placement.controls.session.value) }}</dd></div>
+          <div><dt>Class</dt><dd>{{ display(classes(), placement.controls.academic_class.value) }}</dd></div>
+          <div><dt>Section</dt><dd>{{ display(sections(), placement.controls.section.value) }}</dd></div>
+          <div><dt>Guardians</dt><dd>{{ guardians().length }}</dd></div>
+          <div><dt>Documents</dt><dd>{{ documents().length }}</dd></div>
+        </dl>
+      }
+    }
+  </section>
+  <div class="button-row">
+    @if (step() > 0) { <button mat-button type="button" (click)="back()">Back</button> }
+    @if (step() < 4) { <button mat-flat-button type="button" (click)="next()">Continue</button> }
+    @else { <button mat-flat-button type="button" [disabled]="state.loading() || !canSubmit()" (click)="submit()">Save admission</button> }
+  </div>
+</section>

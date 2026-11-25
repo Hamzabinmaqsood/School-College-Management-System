@@ -1,0 +1,1801 @@
+[
+  {
+    "id": "TT-01",
+    "requirement": "Working-day configuration functions.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Configured weekdays and published a lesson on the configured weekday",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-02",
+    "requirement": "School shifts function.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Created and used a morning shift in the published plan",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-03",
+    "requirement": "Teaching periods function.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Created and used a teaching period in the published lesson",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-04",
+    "requirement": "Break intervals function.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "A valid non-teaching interval was created, rejected for a lesson, and a teaching-period control succeeded.",
+    "frontendEvidence": null,
+    "browserEvidence": "Verified break labeling and persistence, adjacent periods and separate shifts, overlap rejection, and no entry after invalid placement.",
+    "viewport": "1440px and 390px Chromium",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Create a break, reject placement into it, and allow a teaching control.",
+      "requiredAngularCheck": "Use period editor to create and select a non-teaching interval.",
+      "desktopInteraction": "Use period editor to create and select a non-teaching interval.",
+      "mobileInteraction": "Use period editor to create and select a non-teaching interval.",
+      "test": "test_break_curriculum_and_assignment_validation",
+      "expectedResult": "Create a break, reject placement into it, and allow a teaching control.",
+      "actualResult": "A valid non-teaching interval was created, rejected for a lesson, and a teaching-period control succeeded.",
+      "artifact": "/tmp/sms10d-target-final.log",
+      "evidenceStatus": "BACKEND_VERIFIED",
+      "missingImplementation": null,
+      "missingEvidence": "Backend assertion passed. Complete the planned Angular interaction before closing this criterion."
+    },
+    "phase10eEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created break and adjacent lessons in separate tested shifts; invalid placement was rejected without an entry.",
+        "observed": {
+          "id": "36adbb82-c1c2-4476-9a43-2dfc7db91604",
+          "invalidStatus": 400,
+          "persisted": true,
+          "adjacent": "463ba8a2-2cb6-47e4-8882-b2480ef5a17e"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10e-complete-desktop/results.json",
+        "finalCriterionStatus": "PASS"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created break and adjacent lessons in separate tested shifts; invalid placement was rejected without an entry.",
+        "observed": {
+          "id": "f9f128cb-432f-46a5-962a-05a382ce23a1",
+          "invalidStatus": 400,
+          "persisted": true,
+          "adjacent": "a789a331-0d6b-46f1-9cb9-bc71452682c8"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10e-complete-mobile/results.json",
+        "finalCriterionStatus": "PASS"
+      }
+    },
+    "phase10fEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created break and adjacent lessons in separate tested shifts; invalid placement was rejected without an entry.",
+        "observed": {
+          "id": "146c696f-f223-467e-8cc1-06b2f597150c",
+          "invalidStatus": 400,
+          "persisted": true,
+          "adjacent": "21bb2d20-f78b-4bcb-a854-e2dc4358c149"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "PASS"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created break and adjacent lessons in separate tested shifts; invalid placement was rejected without an entry.",
+        "observed": {
+          "id": "4558665e-83c6-4218-90b1-57d284c834c1",
+          "invalidStatus": 400,
+          "persisted": true,
+          "adjacent": "6fba3799-0ced-4124-9037-0c3d2b58f249"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "PASS"
+      }
+    }
+  },
+  {
+    "id": "TT-05",
+    "requirement": "Room management functions.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Created a room and assigned it to a published lesson",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-06",
+    "requirement": "Class timetables can be created.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "Created two class and section lessons via Angular, reconciled allocation and saved entries, approved in a separate reviewer session, published, and checked class and own-teacher schedules.",
+    "viewport": "1440px and 390px Chromium",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Create class-scoped coverage via the section plan model and verify class aggregation.",
+      "requiredAngularCheck": "Create section plans, then choose their class in the published view.",
+      "desktopInteraction": "Create section plans, then choose their class in the published view.",
+      "mobileInteraction": "Create section plans, then choose their class in the published view.",
+      "test": "Open",
+      "expectedResult": "Create class-scoped coverage via the section plan model and verify class aggregation.",
+      "missingImplementation": "Class-level creation workflow still needs review against section plans.",
+      "missingEvidence": "Record a direct assertion for this criterion and relevant scope."
+    },
+    "phase10eEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created a class/section plan in Angular, verified two entries and allocation, and published after review.",
+        "observed": {
+          "id": "4e87b189-a6a6-4288-bce3-5e5ec1993010",
+          "version": "3dbb95af-e975-48da-ac78-4e59316c4ec1",
+          "entries": 2,
+          "published": true
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10e-complete-desktop/results.json",
+        "finalCriterionStatus": "PASS"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created a class/section plan in Angular, verified two entries and allocation, and published after review.",
+        "observed": {
+          "id": "39c68d25-f9fe-4d1d-aac0-71fab6e8469a",
+          "version": "1b2387da-7ee1-435a-b7a6-8aac0e4aa130",
+          "entries": 2,
+          "published": true
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10e-complete-mobile/results.json",
+        "finalCriterionStatus": "PASS"
+      }
+    },
+    "phase10fEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created a class/section plan in Angular, verified two entries and allocation, and published after review.",
+        "observed": {
+          "id": "78edf862-192e-4601-814b-156af95596fa",
+          "version": "58395f85-61ef-4425-9236-db40c0b22b8e",
+          "entries": 2,
+          "published": true
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "PASS"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Created a class/section plan in Angular, verified two entries and allocation, and published after review.",
+        "observed": {
+          "id": "d0ac6e63-b29e-40c3-971c-ac86d84a9917",
+          "version": "f6ad43fe-e907-4fb5-a8b5-5ae42236fb05",
+          "entries": 2,
+          "published": true
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "PASS"
+      }
+    }
+  },
+  {
+    "id": "TT-07",
+    "requirement": "Section timetables can be created.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Created and published a section-scoped draft",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-08",
+    "requirement": "Teacher timetables derive correctly.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": "desktop and mobile",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-09",
+    "requirement": "Curriculum subjects are validated.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::TimetableTests::test_lesson_lookup_and_validation_share_curriculum_and_teacher_scope; full SQLite suite: 66 passed, 15 skipped, 30 subtests passed; isolated PostgreSQL suite: 81 passed, 30 subtests passed.",
+    "frontendEvidence": "frontend/src/app/timetable-page.spec.ts: optional-group save guard and stale subject/teacher/group selections; extended Playwright selector and invalid-write assertions.",
+    "browserEvidence": "Extended isolated Playwright: desktop 2 passed (/tmp/sms-phase09-evidence.5hs22d); 390px mobile 2 passed (/tmp/sms-phase09-evidence.KlMeWz). Verified scoped selectors, foreign/inactive/other-session subjects, optional-group save guard and exact API error, and rejected writes not persisted.",
+    "viewport": "desktop and 390px mobile",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10gVerification": {
+      "backendTest": "backend/tests/test_timetables.py::TimetableTests::test_lesson_lookup_and_validation_share_curriculum_and_teacher_scope",
+      "backendResult": "Passed in fresh SQLite and isolated PostgreSQL regressions. Covers class/session curriculum scope, inactive subject and curriculum records, optional subjects without eligible groups, and rejected optional writes without persistence.",
+      "angularUnitTest": "frontend/src/app/timetable-page.spec.ts",
+      "angularResult": "38 Angular tests passed, including the optional-group save guard and stale subject/teacher/group selections.",
+      "desktopBrowser": "2 extended isolated Playwright tests passed at desktop viewport; evidence: /tmp/sms-phase09-evidence.5hs22d.",
+      "mobileBrowser": "2 extended isolated Playwright tests passed at 390px; evidence: /tmp/sms-phase09-evidence.KlMeWz.",
+      "blocker": null,
+      "criterionStatus": "PASS"
+    },
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Reject an active subject outside the class curriculum.",
+      "requiredAngularCheck": "Check the curriculum subject selector and invalid-selection feedback.",
+      "desktopInteraction": "Check the curriculum subject selector and invalid-selection feedback.",
+      "mobileInteraction": "Check the curriculum subject selector and invalid-selection feedback.",
+      "test": "test_break_curriculum_and_assignment_validation",
+      "expectedResult": "Reject an active subject outside the class curriculum.",
+      "actualResult": "An active subject outside the class curriculum was rejected without persisting an entry.",
+      "artifact": "/tmp/sms10d-target-final.log",
+      "evidenceStatus": "PASS",
+      "missingImplementation": null,
+      "missingEvidence": null
+    }
+  },
+  {
+    "id": "TT-10",
+    "requirement": "Teacher eligibility is validated.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::TimetableTests::test_lesson_lookup_and_validation_share_curriculum_and_teacher_scope; full SQLite suite: 66 passed, 15 skipped, 30 subtests passed; isolated PostgreSQL suite: 81 passed, 30 subtests passed.",
+    "frontendEvidence": "frontend/src/app/timetable-page.spec.ts: stale teacher selection is blocked; extended Playwright verifies eligible selector options and clears teacher when no eligible assignment covers the selected subject.",
+    "browserEvidence": "Extended isolated Playwright: desktop 2 passed (/tmp/sms-phase09-evidence.5hs22d); 390px mobile 2 passed (/tmp/sms-phase09-evidence.KlMeWz). Verified assigned teacher option, omission of unassigned user, and no eligible teacher for the alternate subject.",
+    "viewport": "desktop and 390px mobile",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10gVerification": {
+      "backendTest": "backend/tests/test_timetables.py::TimetableTests::test_lesson_lookup_and_validation_share_curriculum_and_teacher_scope",
+      "backendResult": "Passed in fresh SQLite and isolated PostgreSQL regressions. Covers session, class, section, subject, active status, effective assignment dates, joined/ended employment dates, and suspended employment.",
+      "angularUnitTest": "frontend/src/app/timetable-page.spec.ts",
+      "angularResult": "38 Angular tests passed, including the stale teacher selection guard.",
+      "desktopBrowser": "2 extended isolated Playwright tests passed at desktop viewport; evidence: /tmp/sms-phase09-evidence.5hs22d.",
+      "mobileBrowser": "2 extended isolated Playwright tests passed at 390px; evidence: /tmp/sms-phase09-evidence.KlMeWz.",
+      "blocker": null,
+      "criterionStatus": "PASS"
+    },
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Reject a teacher without an eligible assignment.",
+      "requiredAngularCheck": "Verify assigned teacher options and validation feedback.",
+      "desktopInteraction": "Verify assigned teacher options and validation feedback.",
+      "mobileInteraction": "Verify assigned teacher options and validation feedback.",
+      "test": "test_break_curriculum_and_assignment_validation",
+      "expectedResult": "Reject a teacher without an eligible assignment.",
+      "actualResult": "An unassigned user was rejected without persisting an entry; an assigned teacher succeeded.",
+      "artifact": "/tmp/sms10d-target-final.log",
+      "evidenceStatus": "PASS",
+      "missingImplementation": null,
+      "missingEvidence": null
+    }
+  },
+  {
+    "id": "TT-11",
+    "requirement": "Teacher conflicts are detected.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-12",
+    "requirement": "Section conflicts are detected.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Concurrent publication for the same section in overlapping academic sessions produced one publication and one explicit section conflict.",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-13",
+    "requirement": "Room conflicts are detected.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-14",
+    "requirement": "Time-overlap validation works.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-15",
+    "requirement": "Concurrent publication is protected.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Three isolated PostgreSQL publication races for shared teacher, room, and section. Each produced HTTP 200 and 409, one effective lesson, one publication audit event, and an unchanged approved loser.",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-16",
+    "requirement": "Weekly subject allocations are reported.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-17",
+    "requirement": "Draft editing works.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Added a lesson to the draft and submitted it for review",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-18",
+    "requirement": "Approval and publication work.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": "desktop and mobile",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-19",
+    "requirement": "Published timetables are protected.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Fresh isolated PostgreSQL regressions passed: published PATCH/DELETE stayed rejected, stale decisions returned 409, publication contention preserved audit integrity, and finalized attendance history remained unchanged.",
+    "frontendEvidence": "Angular workflows hid published edit and delete controls and kept historical entries read-only while a future successor was reviewed and published.",
+    "browserEvidence": "Three extended Playwright tests passed at desktop and 390px, including published immutability, successor/effective-date history, cross-version moves, and attendance handoff. Persistent evidence: /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/desktop/results.json and /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/mobile/results.json.",
+    "viewport": "1440x900 and 390x844",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Reject PATCH and DELETE on a published lesson and preserve its persisted fields.",
+      "requiredAngularCheck": "Open a published revision and verify edit and delete are unavailable.",
+      "desktopInteraction": "Open a published revision and verify edit and delete are unavailable.",
+      "mobileInteraction": "Open a published revision and verify edit and delete are unavailable.",
+      "test": "test_published_entry_cannot_be_updated_or_deleted",
+      "expectedResult": "Reject PATCH and DELETE on a published lesson and preserve its persisted fields.",
+      "actualResult": "PATCH and DELETE returned HTTP 409 for a published lesson; notes and the daily occurrence stayed unchanged.",
+      "artifact": "/tmp/sms10d-target-final.log",
+      "evidenceStatus": "BACKEND_VERIFIED",
+      "missingImplementation": null,
+      "missingEvidence": null
+    },
+    "phase10eEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Published edit denied; successor published and original occurrence and notes preserved.",
+        "observed": {
+          "entry": "3b995a96-a3c7-4add-9b65-b9bc17a87462",
+          "mutationStatus": 409,
+          "notesUnchanged": true,
+          "successor": "1f459a13-7131-4fa4-9c2f-0730011295f0"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10e-complete-desktop/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Published edit denied; successor published and original occurrence and notes preserved.",
+        "observed": {
+          "entry": "471f6329-d6f4-4495-bcc3-5b10cef2cdf7",
+          "mutationStatus": 409,
+          "notesUnchanged": true,
+          "successor": "c6430db7-dabd-4b78-b0ba-23432e73eab0"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10e-complete-mobile/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    },
+    "phase10fEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Published edit denied; successor published and original occurrence and notes preserved.",
+        "observed": {
+          "entry": "64993184-2be5-44b9-8c74-140d55bd0c10",
+          "mutationStatus": 409,
+          "notesUnchanged": true,
+          "successor": "cdddaa4b-7422-4328-8a21-dad31ec24ffb"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Published edit denied; successor published and original occurrence and notes preserved.",
+        "observed": {
+          "entry": "74cb25fd-a2a7-4f93-b8f6-81e936116617",
+          "mutationStatus": 409,
+          "notesUnchanged": true,
+          "successor": "98499b0c-d7f5-41db-875f-b08c3cef4dbf"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    },
+    "phase10fHistoryEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "One destination occurrence uses the published successor roster and retains the original version reference.",
+        "observed": {
+          "source": "58395f85-61ef-4425-9236-db40c0b22b8e",
+          "destination": "cdddaa4b-7422-4328-8a21-dad31ec24ffb",
+          "roster": "cc55c43b-b22b-4148-a76f-348cb91dde08"
+        },
+        "role": "Institution administrator with separate reviewer context",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/exceptions/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "One destination occurrence uses the published successor roster and retains the original version reference.",
+        "observed": {
+          "source": "f6ad43fe-e907-4fb5-a8b5-5ae42236fb05",
+          "destination": "98499b0c-d7f5-41db-875f-b08c3cef4dbf",
+          "roster": "47a5645c-ecdb-4f70-9ce1-ddcdda566aa6"
+        },
+        "role": "Institution administrator with separate reviewer context",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/exceptions/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    }
+  },
+  {
+    "id": "TT-20",
+    "requirement": "Revision history is preserved.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_publication_conflicts_revisions_and_teacher_scope",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-21",
+    "requirement": "Date-specific exceptions work.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_cross_date_change_is_counted_once_and_retains_source",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": "desktop and mobile",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-22",
+    "requirement": "Teacher substitution works.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_dated_substitution_calendar_and_license_expiry",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-23",
+    "requirement": "Staff leave affects daily scheduling correctly.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Fresh isolated PostgreSQL regressions covered pending, rejected, approved, and canceled leave; joining and termination dates; and inclusive contract boundaries for every recurring lesson date. Only approved leave warns, and ineligible staff are blocked.",
+    "frontendEvidence": "Desktop and mobile Angular workflows displayed approved leave on the affected date, accepted an eligible substitute, and preserved the recurring teacher assignment.",
+    "browserEvidence": "Three extended Playwright tests passed at desktop and 390px; the published recurring timetable remained unchanged after substitution. Persistent evidence: /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/desktop/results.json and /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/mobile/results.json.",
+    "viewport": "1440x900 and 390x844",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Only approved leave flags the affected recurrence while preserving the recurring entry.",
+      "requiredAngularCheck": "Open both an affected and unaffected day and compare scheduling warnings.",
+      "desktopInteraction": "Open both an affected and unaffected day and compare scheduling warnings.",
+      "mobileInteraction": "Open both an affected and unaffected day and compare scheduling warnings.",
+      "test": "test_reschedule_rejects_exam_leave_and_existing_attendance",
+      "expectedResult": "Only approved leave flags the affected recurrence while preserving the recurring entry.",
+      "actualResult": "Only approved leave flagged the affected daily occurrence; the original date, entry and published version were preserved.",
+      "artifact": "/tmp/sms10d-target-final.log",
+      "evidenceStatus": "BACKEND_VERIFIED",
+      "missingImplementation": null,
+      "missingEvidence": null
+    },
+    "phase10eEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Approved leave displayed on the affected daily occurrence; substitution kept the recurring teacher.",
+        "observed": {
+          "id": "c66ce44c-fbf1-4709-9a07-c8a554465fe7",
+          "kind": "substitute",
+          "date": "2026-11-25"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10e-complete-desktop/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Approved leave displayed on the affected daily occurrence; substitution kept the recurring teacher.",
+        "observed": {
+          "id": "98ea9bc0-1ba9-4bb6-bd13-340941c4e4a7",
+          "kind": "substitute",
+          "date": "2026-11-25"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10e-complete-mobile/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    },
+    "phase10fEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Approved leave displayed on the affected daily occurrence; substitution kept the recurring teacher.",
+        "observed": {
+          "id": "3c276dae-ab67-4fbb-8b88-2725f76e3a03",
+          "kind": "substitute",
+          "date": "2026-11-25"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "Approved leave displayed on the affected daily occurrence; substitution kept the recurring teacher.",
+        "observed": {
+          "id": "76dd72cf-790a-4ff0-af7b-ad9b6676c9a2",
+          "kind": "substitute",
+          "date": "2026-11-25"
+        },
+        "role": "Institution administrator with separate reviewer and teacher contexts",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    }
+  },
+  {
+    "id": "TT-24",
+    "requirement": "Student attendance integration works.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_parallel_groups_require_disjoint_enrollments_and_snapshotted_rosters",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": "desktop and mobile",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-25",
+    "requirement": "Historical attendance remains unchanged.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_reschedule_rejects_exam_leave_and_existing_attendance",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-26",
+    "requirement": "Attendance completeness uses published timetable information when available.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_cross_date_change_is_counted_once_and_retains_source",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-27",
+    "requirement": "Examination schedule conflicts are handled.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_reschedule_rejects_exam_leave_and_existing_attendance",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-28",
+    "requirement": "Class timetable printing works.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Class print layout includes institution and revision and hides workspace navigation",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-29",
+    "requirement": "Teacher timetable printing works.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "timetable.browser.mjs, extended workflow: Own-scope teacher print layout includes revision and hides print controls",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-30",
+    "requirement": "Room schedules work.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Report fixture verifies 180 occupied minutes in room utilization.",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-31",
+    "requirement": "Reports and exports work.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Fresh isolated PostgreSQL regressions reconciled all 14 report types, pagination, CSV output, expiry behavior, view denial, and export denial.",
+    "frontendEvidence": "Report filters and print controls were exercised from the Angular timetable workspace.",
+    "browserEvidence": "Three extended Playwright tests passed at desktop and 390px. All 14 report reads and CSV downloads passed with session, class, and date filters; historical class and room-usage PDFs were rendered and inspected. Persistent evidence: /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/desktop/results.json and /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/mobile/results.json.",
+    "viewport": "1440x900 and 390x844",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Reconcile each report and check filtered, historical, printed and CSV rows.",
+      "requiredAngularCheck": "Run each report and inspect filters, result counts, print layout, and downloaded CSV.",
+      "desktopInteraction": "Run each report and inspect filters, result counts, print layout, and downloaded CSV.",
+      "mobileInteraction": "Run each report and inspect filters, result counts, print layout, and downloaded CSV.",
+      "test": "test_all_report_routes_reconcile_and_export_after_license_expiry",
+      "expectedResult": "Reconcile each report and check filtered, historical, printed and CSV rows.",
+      "missingImplementation": null,
+      "missingEvidence": null
+    },
+    "phase10dBrowserEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "role": "Institution administrator",
+        "route": "/timetable",
+        "fixture": "Browser Academy disposable scheduling fixture",
+        "databaseAssertions": "Backend fixture reconciliation is recorded separately.",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10d-desktop-final/results.json",
+        "finalCriterionStatus": "NOT_TESTED",
+        "outcomes": [
+          {
+            "kind": "class",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "class.csv",
+            "endpoint": "/api/v1/timetables/reports/class/"
+          },
+          {
+            "kind": "section",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "section.csv",
+            "endpoint": "/api/v1/timetables/reports/section/"
+          },
+          {
+            "kind": "teacher-weekly",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-weekly.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-weekly/"
+          },
+          {
+            "kind": "teacher-daily",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-daily.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-daily/"
+          },
+          {
+            "kind": "rooms",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "rooms.csv",
+            "endpoint": "/api/v1/timetables/reports/rooms/"
+          },
+          {
+            "kind": "workload",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "workload.csv",
+            "endpoint": "/api/v1/timetables/reports/workload/"
+          },
+          {
+            "kind": "allocations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "allocations.csv",
+            "endpoint": "/api/v1/timetables/reports/allocations/"
+          },
+          {
+            "kind": "unassigned",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "unassigned.csv",
+            "endpoint": "/api/v1/timetables/reports/unassigned/"
+          },
+          {
+            "kind": "conflicts",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "conflicts.csv",
+            "endpoint": "/api/v1/timetables/reports/conflicts/"
+          },
+          {
+            "kind": "substitutions",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "substitutions.csv",
+            "endpoint": "/api/v1/timetables/reports/substitutions/"
+          },
+          {
+            "kind": "cancellations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "cancellations.csv",
+            "endpoint": "/api/v1/timetables/reports/cancellations/"
+          },
+          {
+            "kind": "reschedules",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "reschedules.csv",
+            "endpoint": "/api/v1/timetables/reports/reschedules/"
+          },
+          {
+            "kind": "revisions",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "revisions.csv",
+            "endpoint": "/api/v1/timetables/reports/revisions/"
+          },
+          {
+            "kind": "attendance",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "attendance.csv",
+            "endpoint": "/api/v1/timetables/reports/attendance/"
+          }
+        ]
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "role": "Institution administrator",
+        "route": "/timetable",
+        "fixture": "Browser Academy disposable scheduling fixture",
+        "databaseAssertions": "Backend fixture reconciliation is recorded separately.",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10d-mobile-final/results.json",
+        "finalCriterionStatus": "NOT_TESTED",
+        "outcomes": [
+          {
+            "kind": "class",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "class.csv",
+            "endpoint": "/api/v1/timetables/reports/class/"
+          },
+          {
+            "kind": "section",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "section.csv",
+            "endpoint": "/api/v1/timetables/reports/section/"
+          },
+          {
+            "kind": "teacher-weekly",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-weekly.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-weekly/"
+          },
+          {
+            "kind": "teacher-daily",
+            "count": 2,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-daily.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-daily/"
+          },
+          {
+            "kind": "rooms",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "rooms.csv",
+            "endpoint": "/api/v1/timetables/reports/rooms/"
+          },
+          {
+            "kind": "workload",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "workload.csv",
+            "endpoint": "/api/v1/timetables/reports/workload/"
+          },
+          {
+            "kind": "allocations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "allocations.csv",
+            "endpoint": "/api/v1/timetables/reports/allocations/"
+          },
+          {
+            "kind": "unassigned",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "unassigned.csv",
+            "endpoint": "/api/v1/timetables/reports/unassigned/"
+          },
+          {
+            "kind": "conflicts",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "conflicts.csv",
+            "endpoint": "/api/v1/timetables/reports/conflicts/"
+          },
+          {
+            "kind": "substitutions",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "substitutions.csv",
+            "endpoint": "/api/v1/timetables/reports/substitutions/"
+          },
+          {
+            "kind": "cancellations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "cancellations.csv",
+            "endpoint": "/api/v1/timetables/reports/cancellations/"
+          },
+          {
+            "kind": "reschedules",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "reschedules.csv",
+            "endpoint": "/api/v1/timetables/reports/reschedules/"
+          },
+          {
+            "kind": "revisions",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "revisions.csv",
+            "endpoint": "/api/v1/timetables/reports/revisions/"
+          },
+          {
+            "kind": "attendance",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "attendance.csv",
+            "endpoint": "/api/v1/timetables/reports/attendance/"
+          }
+        ]
+      }
+    },
+    "phase10eReportEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "role": "Institution administrator",
+        "route": "/timetable",
+        "fixture": "Browser Academy disposable scheduling fixture",
+        "databaseAssertions": "Backend fixture reconciliation is recorded separately.",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10e-complete-desktop/results.json",
+        "finalCriterionStatus": "NOT_TESTED",
+        "outcomes": [
+          {
+            "kind": "class",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "class.csv",
+            "endpoint": "/api/v1/timetables/reports/class/"
+          },
+          {
+            "kind": "section",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "section.csv",
+            "endpoint": "/api/v1/timetables/reports/section/"
+          },
+          {
+            "kind": "teacher-weekly",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-weekly.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-weekly/"
+          },
+          {
+            "kind": "teacher-daily",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-daily.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-daily/"
+          },
+          {
+            "kind": "rooms",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "rooms.csv",
+            "endpoint": "/api/v1/timetables/reports/rooms/"
+          },
+          {
+            "kind": "workload",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "workload.csv",
+            "endpoint": "/api/v1/timetables/reports/workload/"
+          },
+          {
+            "kind": "allocations",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "allocations.csv",
+            "endpoint": "/api/v1/timetables/reports/allocations/"
+          },
+          {
+            "kind": "unassigned",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "unassigned.csv",
+            "endpoint": "/api/v1/timetables/reports/unassigned/"
+          },
+          {
+            "kind": "conflicts",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "conflicts.csv",
+            "endpoint": "/api/v1/timetables/reports/conflicts/"
+          },
+          {
+            "kind": "substitutions",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "substitutions.csv",
+            "endpoint": "/api/v1/timetables/reports/substitutions/"
+          },
+          {
+            "kind": "cancellations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "cancellations.csv",
+            "endpoint": "/api/v1/timetables/reports/cancellations/"
+          },
+          {
+            "kind": "reschedules",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "reschedules.csv",
+            "endpoint": "/api/v1/timetables/reports/reschedules/"
+          },
+          {
+            "kind": "revisions",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "revisions.csv",
+            "endpoint": "/api/v1/timetables/reports/revisions/"
+          },
+          {
+            "kind": "attendance",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "attendance.csv",
+            "endpoint": "/api/v1/timetables/reports/attendance/"
+          }
+        ]
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "role": "Institution administrator",
+        "route": "/timetable",
+        "fixture": "Browser Academy disposable scheduling fixture",
+        "databaseAssertions": "Backend fixture reconciliation is recorded separately.",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10e-complete-mobile/results.json",
+        "finalCriterionStatus": "NOT_TESTED",
+        "outcomes": [
+          {
+            "kind": "class",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "class.csv",
+            "endpoint": "/api/v1/timetables/reports/class/"
+          },
+          {
+            "kind": "section",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "section.csv",
+            "endpoint": "/api/v1/timetables/reports/section/"
+          },
+          {
+            "kind": "teacher-weekly",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-weekly.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-weekly/"
+          },
+          {
+            "kind": "teacher-daily",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-daily.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-daily/"
+          },
+          {
+            "kind": "rooms",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "rooms.csv",
+            "endpoint": "/api/v1/timetables/reports/rooms/"
+          },
+          {
+            "kind": "workload",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "workload.csv",
+            "endpoint": "/api/v1/timetables/reports/workload/"
+          },
+          {
+            "kind": "allocations",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "allocations.csv",
+            "endpoint": "/api/v1/timetables/reports/allocations/"
+          },
+          {
+            "kind": "unassigned",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "unassigned.csv",
+            "endpoint": "/api/v1/timetables/reports/unassigned/"
+          },
+          {
+            "kind": "conflicts",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "conflicts.csv",
+            "endpoint": "/api/v1/timetables/reports/conflicts/"
+          },
+          {
+            "kind": "substitutions",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "substitutions.csv",
+            "endpoint": "/api/v1/timetables/reports/substitutions/"
+          },
+          {
+            "kind": "cancellations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "cancellations.csv",
+            "endpoint": "/api/v1/timetables/reports/cancellations/"
+          },
+          {
+            "kind": "reschedules",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "reschedules.csv",
+            "endpoint": "/api/v1/timetables/reports/reschedules/"
+          },
+          {
+            "kind": "revisions",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "revisions.csv",
+            "endpoint": "/api/v1/timetables/reports/revisions/"
+          },
+          {
+            "kind": "attendance",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "attendance.csv",
+            "endpoint": "/api/v1/timetables/reports/attendance/"
+          }
+        ]
+      }
+    },
+    "phase10fReportEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "role": "Institution administrator",
+        "route": "/timetable",
+        "fixture": "Browser Academy disposable scheduling fixture",
+        "databaseAssertions": "Backend fixture reconciliation is recorded separately.",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED",
+        "outcomes": [
+          {
+            "kind": "class",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "class.csv",
+            "endpoint": "/api/v1/timetables/reports/class/"
+          },
+          {
+            "kind": "section",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "section.csv",
+            "endpoint": "/api/v1/timetables/reports/section/"
+          },
+          {
+            "kind": "teacher-weekly",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-weekly.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-weekly/"
+          },
+          {
+            "kind": "teacher-daily",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-daily.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-daily/"
+          },
+          {
+            "kind": "rooms",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "rooms.csv",
+            "endpoint": "/api/v1/timetables/reports/rooms/"
+          },
+          {
+            "kind": "workload",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "workload.csv",
+            "endpoint": "/api/v1/timetables/reports/workload/"
+          },
+          {
+            "kind": "allocations",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "allocations.csv",
+            "endpoint": "/api/v1/timetables/reports/allocations/"
+          },
+          {
+            "kind": "unassigned",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "unassigned.csv",
+            "endpoint": "/api/v1/timetables/reports/unassigned/"
+          },
+          {
+            "kind": "conflicts",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "conflicts.csv",
+            "endpoint": "/api/v1/timetables/reports/conflicts/"
+          },
+          {
+            "kind": "substitutions",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "substitutions.csv",
+            "endpoint": "/api/v1/timetables/reports/substitutions/"
+          },
+          {
+            "kind": "cancellations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "cancellations.csv",
+            "endpoint": "/api/v1/timetables/reports/cancellations/"
+          },
+          {
+            "kind": "reschedules",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "reschedules.csv",
+            "endpoint": "/api/v1/timetables/reports/reschedules/"
+          },
+          {
+            "kind": "revisions",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "revisions.csv",
+            "endpoint": "/api/v1/timetables/reports/revisions/"
+          },
+          {
+            "kind": "attendance",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "attendance.csv",
+            "endpoint": "/api/v1/timetables/reports/attendance/"
+          }
+        ]
+      },
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "role": "Institution administrator",
+        "route": "/timetable",
+        "fixture": "Browser Academy disposable scheduling fixture",
+        "databaseAssertions": "Backend fixture reconciliation is recorded separately.",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED",
+        "outcomes": [
+          {
+            "kind": "class",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "class.csv",
+            "endpoint": "/api/v1/timetables/reports/class/"
+          },
+          {
+            "kind": "section",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "section.csv",
+            "endpoint": "/api/v1/timetables/reports/section/"
+          },
+          {
+            "kind": "teacher-weekly",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-weekly.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-weekly/"
+          },
+          {
+            "kind": "teacher-daily",
+            "count": 3,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "teacher-daily.csv",
+            "endpoint": "/api/v1/timetables/reports/teacher-daily/"
+          },
+          {
+            "kind": "rooms",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "rooms.csv",
+            "endpoint": "/api/v1/timetables/reports/rooms/"
+          },
+          {
+            "kind": "workload",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "workload.csv",
+            "endpoint": "/api/v1/timetables/reports/workload/"
+          },
+          {
+            "kind": "allocations",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "allocations.csv",
+            "endpoint": "/api/v1/timetables/reports/allocations/"
+          },
+          {
+            "kind": "unassigned",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "unassigned.csv",
+            "endpoint": "/api/v1/timetables/reports/unassigned/"
+          },
+          {
+            "kind": "conflicts",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "conflicts.csv",
+            "endpoint": "/api/v1/timetables/reports/conflicts/"
+          },
+          {
+            "kind": "substitutions",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "substitutions.csv",
+            "endpoint": "/api/v1/timetables/reports/substitutions/"
+          },
+          {
+            "kind": "cancellations",
+            "count": 0,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "cancellations.csv",
+            "endpoint": "/api/v1/timetables/reports/cancellations/"
+          },
+          {
+            "kind": "reschedules",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "reschedules.csv",
+            "endpoint": "/api/v1/timetables/reports/reschedules/"
+          },
+          {
+            "kind": "revisions",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "revisions.csv",
+            "endpoint": "/api/v1/timetables/reports/revisions/"
+          },
+          {
+            "kind": "attendance",
+            "count": 1,
+            "from": "2026-12-01",
+            "through": "2026-12-02",
+            "export": "attendance.csv",
+            "endpoint": "/api/v1/timetables/reports/attendance/"
+          }
+        ]
+      }
+    },
+    "phase10fPDFEvidence": {
+      "pages": {
+        "desktop": 5,
+        "mobile390": 5
+      },
+      "inspection": "/tmp/sms10f-pdf.log",
+      "result": "passed",
+      "criterionStatus": "NOT_TESTED"
+    }
+  },
+  {
+    "id": "TT-32",
+    "requirement": "Dynamic RBAC is enforced.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Fresh PostgreSQL and browser regressions verified the dedicated change_timetable_settings permission for capacity enforcement; an authorized settings-only user succeeded while teacher, HR, payroll, and restricted roles were denied.",
+    "frontendEvidence": "Five fixture roles were exercised against timetable reads, settings, configuration, drafts, lessons, exceptions, and room-report exports; print output was available only through the protected report workflow.",
+    "browserEvidence": "Desktop and mobile verified the five-role operation matrix plus live approval, report-read, CSV-export, and capacity-setting grant revocations in signed-in sessions.",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Confirm operations respect each fixture’s effective grants with an authorized control.",
+      "requiredAngularCheck": "Check route access, controls, live revocation, and direct API results in separate role contexts.",
+      "desktopInteraction": "Check route access, controls, live revocation, and direct API results in separate role contexts.",
+      "mobileInteraction": "Check route access, controls, live revocation, and direct API results in separate role contexts.",
+      "test": "test_five_role_scope_and_permission_denials (partial)",
+      "expectedResult": "Confirm operations respect each fixture’s effective grants with an authorized control.",
+      "missingImplementation": null,
+      "missingEvidence": null,
+      "executedTests": [
+        {
+          "test": "revokes timetable report read and CSV access from a live session",
+          "testType": "Playwright",
+          "result": "passed",
+          "role": "Timetable reviewer",
+          "route": "/timetable",
+          "viewport": "1440x900",
+          "endpoint": "/api/v1/timetables/reports/class/",
+          "fixture": "Browser Academy timetable reviewer",
+          "databaseAssertions": null,
+          "artifact": "/tmp/sms10d-revoke-desktop/results.json",
+          "actual": {
+            "read": 403,
+            "export": 403
+          },
+          "finalCriterionStatus": "NOT_TESTED"
+        },
+        {
+          "test": "revokes timetable report read and CSV access from a live session",
+          "testType": "Playwright",
+          "result": "passed",
+          "role": "Timetable reviewer",
+          "route": "/timetable",
+          "viewport": "390x844",
+          "endpoint": "/api/v1/timetables/reports/class/",
+          "fixture": "Browser Academy timetable reviewer",
+          "databaseAssertions": null,
+          "artifact": "/tmp/sms10d-revoke-mobile/results.json",
+          "actual": {
+            "read": 403,
+            "export": 403
+          },
+          "finalCriterionStatus": "NOT_TESTED"
+        }
+      ]
+    }
+  },
+  {
+    "id": "TT-33",
+    "requirement": "Offline licensing is enforced.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "backend/tests/test_timetables.py::test_dated_substitution_calendar_and_license_expiry",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-34",
+    "requirement": "PostgreSQL migrations succeed safely.",
+    "implementation": "backend/apps/timetables and frontend/src/app/timetable-page",
+    "backendEvidence": "Fresh isolated PostgreSQL regression applied migrations. Operational migration plan read successfully.",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "BLOCKED",
+    "remainingEvidence": "Approved destination missing. Ten pending migrations including timetable 0006 and 0007. Operational restore and explicit migration authorization remain required.",
+    "phase10dTraceability": {
+      "previousStatus": "BLOCKED",
+      "requiredBackendCheck": "Apply and verify operational migrations only after backup restoration and operator authorization.",
+      "requiredAngularCheck": null,
+      "desktopInteraction": null,
+      "mobileInteraction": null,
+      "test": "Operational gate",
+      "expectedResult": "Apply and verify operational migrations only after backup restoration and operator authorization.",
+      "missingImplementation": "Operator-provisioned backup configuration and separate migration authorization.",
+      "missingEvidence": "Verify a restore from the operational source with approved settings and obtain express authorization to apply migrations."
+    }
+  },
+  {
+    "id": "TT-35",
+    "requirement": "Backend regression tests pass.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": "Phase 10F PostgreSQL: 80 passed, 29 subtests. SQLite: 65 passed, 15 skipped, 29 subtests.",
+    "frontendEvidence": null,
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-36",
+    "requirement": "Frontend tests pass.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": null,
+    "frontendEvidence": "Phase 10F Angular: 36 tests passed; ESLint and TypeScript passed.",
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-37",
+    "requirement": "Desktop browser workflow passes.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "Three extended Chromium tests passed at 1440x900, including publication, successor and cross-version history, leave substitution, all 14 reports, room printing, five-role UI/operation authorization, and live grant revocation. Persistent evidence: /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/desktop/results.json.",
+    "viewport": "desktop",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Complete outstanding functional workflows in desktop Chromium.",
+      "requiredAngularCheck": "Verify the full timetable workflow at 1440px.",
+      "desktopInteraction": "Verify the full timetable workflow at 1440px.",
+      "mobileInteraction": null,
+      "test": "timetable.browser.mjs (partial)",
+      "expectedResult": "Complete outstanding functional workflows in desktop Chromium.",
+      "missingImplementation": null,
+      "missingEvidence": null
+    },
+    "phase10fHistoryEvidence": {
+      "timetable-desktop": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "One destination occurrence uses the published successor roster and retains the original version reference.",
+        "observed": {
+          "source": "58395f85-61ef-4425-9236-db40c0b22b8e",
+          "destination": "cdddaa4b-7422-4328-8a21-dad31ec24ffb",
+          "roster": "cc55c43b-b22b-4148-a76f-348cb91dde08"
+        },
+        "role": "Institution administrator with separate reviewer context",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/exceptions/",
+        "viewport": "1440x900",
+        "artifact": "/tmp/sms10f-desktop-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    }
+  },
+  {
+    "id": "TT-38",
+    "requirement": "Mobile browser workflow passes.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "Three extended Chromium tests passed at 390x844 with no horizontal overflow, including publication, successor and cross-version history, leave substitution, all 14 reports, room printing, five-role UI/operation authorization, and live grant revocation. Persistent evidence: /mnt/c/Users/Malik/.copilot/session-state/9b1d9563-331f-4d75-8e0c-bf9dd5d22c78/files/phase10h-evidence/mobile/results.json.",
+    "viewport": "mobile",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Complete outstanding functional workflows in 390px Chromium without horizontal overflow.",
+      "requiredAngularCheck": "Verify the full timetable workflow at 390px.",
+      "desktopInteraction": null,
+      "mobileInteraction": "Verify the full timetable workflow at 390px.",
+      "test": "timetable.browser.mjs (partial)",
+      "expectedResult": "Complete outstanding functional workflows in 390px Chromium without horizontal overflow.",
+      "missingImplementation": null,
+      "missingEvidence": null
+    },
+    "phase10fHistoryEvidence": {
+      "timetable-mobile": {
+        "test": "configures, reviews and publishes a scoped timetable",
+        "testType": "Playwright",
+        "result": "passed",
+        "expected": "One destination occurrence uses the published successor roster and retains the original version reference.",
+        "observed": {
+          "source": "f6ad43fe-e907-4fb5-a8b5-5ae42236fb05",
+          "destination": "98499b0c-d7f5-41db-875f-b08c3cef4dbf",
+          "roster": "47a5645c-ecdb-4f70-9ce1-ddcdda566aa6"
+        },
+        "role": "Institution administrator with separate reviewer context",
+        "route": "/timetable",
+        "endpoint": "/api/v1/timetables/exceptions/",
+        "viewport": "390x844",
+        "artifact": "/tmp/sms10f-mobile-verified/results.json",
+        "finalCriterionStatus": "NOT_TESTED"
+      }
+    }
+  },
+  {
+    "id": "TT-39",
+    "requirement": "Angular production build passes.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": null,
+    "frontendEvidence": "Phase 10F production build passed; initial bundle 954.55 kB.",
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  },
+  {
+    "id": "TT-40",
+    "requirement": "Existing modules have no regressions.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": null,
+    "frontendEvidence": null,
+    "browserEvidence": "Fresh full isolated PostgreSQL and SQLite, Angular tests and build, baseline Playwright, and five-role finance Playwright passed. Historical authorized reads at license expiry passed in the backend suite.",
+    "viewport": "desktop and mobile Chromium",
+    "status": "PASS",
+    "remainingEvidence": null,
+    "phase10dTraceability": {
+      "previousStatus": "NOT_TESTED",
+      "requiredBackendCheck": "Run earlier module workflows alongside API and frontend regressions.",
+      "requiredAngularCheck": "Exercise existing HR, attendance, finance and exam workflows.",
+      "desktopInteraction": "Exercise existing HR, attendance, finance and exam workflows.",
+      "mobileInteraction": "Exercise existing HR, attendance, finance and exam workflows.",
+      "test": "acceptance.browser.mjs (partial)",
+      "expectedResult": "Run earlier module workflows alongside API and frontend regressions.",
+      "missingImplementation": null,
+      "missingEvidence": "Skipped cases and earlier-module workflows outside the regression harness still require evidence."
+    }
+  },
+  {
+    "id": "TT-41",
+    "requirement": "Documentation is updated.",
+    "implementation": "docs/PHASE_10_ACCEPTANCE_REPORT.md",
+    "backendEvidence": null,
+    "frontendEvidence": "Phase 10 acceptance report, deployment runbook, and affected documentation updated.",
+    "browserEvidence": null,
+    "viewport": null,
+    "status": "PASS",
+    "remainingEvidence": null
+  }
+]

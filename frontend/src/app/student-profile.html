@@ -1,0 +1,125 @@
+<section class="management-page student-profile">
+  <header class="management-heading">
+    <div><p>{{ auth.branding()?.name }}</p><h1>{{ student() ? fullName(student()!) : 'Student profile' }}</h1>
+      @if (student(); as row) { <p>Admission {{ row['admission_number'] }} · <span class="capitalize">{{ row['status'] }}</span></p> }</div>
+    <div class="button-row profile-actions">
+      @if (auth.has('accounts.view_students')) { <a mat-button routerLink="/students">Back to students</a> }
+      @if (student() && printing) { <button mat-flat-button (click)="print()">Print</button> }
+      @if (student() && !printing && auth.has('accounts.print_students')) {
+        <a mat-button [routerLink]="['/students', id, 'print']">Print profile</a>
+      }
+    </div>
+  </header>
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  @if (state.success() && !printing) { <p class="notice" role="status">{{ state.success() }}</p> }
+  @if (state.loading()) { <p class="notice" role="status">Loading student information…</p> }
+  @if (!printing) {
+    <nav class="profile-tabs" aria-label="Student profile sections">
+      @for (label of tabs(); track label) {
+        <button mat-button type="button" [class.selected]="label === tab()" [attr.aria-pressed]="label === tab()" (click)="show(label)">{{ label }}</button>
+      }
+    </nav>
+  }
+  @switch (tab()) {
+    @case ('Overview') {
+      @if (student(); as record) {
+        <section class="panel management-form">
+          @if (editing()) {
+            <form class="management-form" (ngSubmit)="saveStudent()">
+              <h2>Edit student</h2><app-student-fields [form]="editForm" />
+              <div class="button-row"><button mat-flat-button type="submit" [disabled]="editForm.invalid || state.loading()">Save student</button>
+                <button mat-button type="button" (click)="editing.set(false)">Cancel</button></div>
+            </form>
+          } @else {
+            <div class="panel-heading"><h2>Student information</h2>
+              @if (!printing && workspace.can('students', 'students.change_student')) { <button mat-button (click)="edit()">Edit student</button> }
+            </div>
+            <dl class="license-details profile-details">@for (field of studentFields; track field.key) {
+              <div><dt>{{ field.label }}</dt><dd>{{ record[field.key] || '—' }}</dd></div>
+            }</dl>
+          }
+        </section>
+      }
+    }
+    @case ('Guardians') {
+      <section class="panel management-form">
+        <div class="panel-heading"><h2>Guardians</h2>
+          @if (workspace.can('students', 'accounts.manage_guardian_links')) { <button mat-button (click)="link()">Link guardian</button> }
+        </div>
+        @if (linkEditor(); as selected) {
+          <form class="related-card management-form" (ngSubmit)="saveLink()">
+            <app-guardian-fields [form]="linkForm" [choices]="choices()" [editing]="selected !== 'add'" [canCreate]="auth.has('students.add_guardian')" />
+            <div class="button-row"><button mat-flat-button type="submit" [disabled]="state.loading()">Save guardian link</button>
+              <button mat-button type="button" (click)="linkEditor.set(null)">Cancel</button></div>
+          </form>
+        }
+        @for (row of links()?.results ?? []; track row.id) {
+          <article class="related-card"><strong>{{ row['name'] }}</strong><p>{{ row['relationship'] }} · {{ row['phone'] }}</p>
+            @if (row['primary']) { <span class="license-status green">Primary guardian</span> }
+            @if (row['emergency']) { <span class="license-status orange">Emergency contact</span> }
+            @if (row['pickup']) { <span class="license-status green">Authorized pickup</span> }
+            @if (workspace.can('students', 'accounts.manage_guardian_links')) { <button mat-button (click)="link(row)">Edit link</button> }
+          </article>
+        } @empty { <p>No guardians linked.</p> }
+      </section>
+    }
+    @case ('Academic history') {
+      <section class="panel management-form">
+        <div class="panel-heading"><h2>Academic history</h2>
+          @if (auth.has('accounts.export_admissions')) { <a mat-button [href]="'/api/v1/' + path + 'enrollment-report/'">Download history CSV</a> }
+        </div>
+        @if (progression(); as source) {
+          <form class="related-card management-form" [formGroup]="progressForm" (ngSubmit)="saveProgress()">
+            <h3>{{ source['class_name'] }} · {{ source['session_name'] }}</h3>
+            <div class="field-grid"><label>Action <select name="action" formControlName="action">
+              @for (action of actions(source); track action) { <option [value]="action">{{ action }}</option> }
+            </select></label>
+            <label>Effective date <input type="date" name="effective_date" formControlName="effective_date" required></label></div>
+            @if (needsTarget()) { <app-placement [form]="placement" [sessions]="sessions()" [classes]="classes()" [sections]="sections()" /> }
+            <div class="button-row"><button mat-flat-button type="submit" [disabled]="state.loading() || progressForm.invalid">Save progression</button>
+              <button mat-button type="button" (click)="progression.set(null)">Cancel</button></div>
+          </form>
+        }
+        @for (row of history()?.results ?? []; track row.id; let first = $first) {
+          <article class="related-card">
+            <strong>{{ row['class_name'] }} · {{ row['session_name'] }}</strong>
+            <p>{{ row['section_name'] || 'Unassigned' }} · Roll {{ row['roll_number'] || '—' }}</p>
+            <p>{{ row['enrollment_date'] }} @if (row['ended_on']) { to {{ row['ended_on'] }} } · {{ row['status'] }}</p>
+            @if (first && offset === 0 && workspace.can('admissions', 'accounts.progress_students')) {
+              <button mat-button (click)="beginProgress(row)">Promote or transfer</button>
+            }
+          </article>
+        } @empty { <p>No academic enrollments recorded.</p> }
+      </section>
+    }
+    @case ('Documents') {
+      <section class="panel management-form">
+        <h2>Private documents</h2>
+        @if (workspace.can('students', 'students.add_studentdocument')) {
+          <form class="filter-bar" [formGroup]="upload" (ngSubmit)="saveDocument(fileInput)">
+            <label>Document type <select formControlName="kind"><option value="">Select type</option>
+              @for (kind of documentTypes(); track kind) { <option [value]="kind">{{ kind }}</option> }
+            </select></label>
+            <label>Label <input formControlName="label" maxlength="120"></label>
+            <label>Image file <input #fileInput type="file" accept="image/png,image/jpeg,image/webp"></label>
+            <button mat-flat-button type="submit" [disabled]="upload.invalid || state.loading()">Upload document</button>
+          </form>
+        }
+        @for (row of documents()?.results ?? []; track row.id) {
+          <article class="related-card"><strong>{{ row['label'] }}</strong><p>{{ row['kind'] }} · {{ row['size'] }} bytes</p>
+            <a mat-button [href]="'/api/v1/' + path + 'documents/' + row.id + '/download/'">Download</a>
+            @if (workspace.can('students', 'accounts.archive_student_documents')) { <button mat-button (click)="archive(row)">Archive</button> }
+          </article>
+        } @empty { <p>No active documents.</p> }
+      </section>
+    }
+    @case ('Attendance') { <app-attendance-report [studentId]="id" /> }
+    @case ('Fees') { <app-student-fees [studentId]="id" /> }
+    @case ('Examination results') { <app-student-results [studentId]="id" /> }
+    @default { <section class="panel empty-page"><h2>{{ tab() }}</h2><p>This module is planned for a later phase.</p></section> }
+  }
+  @if (currentPage(); as current) {
+    <div class="button-row"><button mat-button [disabled]="!current.previous" (click)="loadTab(offset - 20)">Previous</button>
+      <button mat-button [disabled]="!current.next" (click)="loadTab(offset + 20)">Next</button></div>
+  }
+</section>

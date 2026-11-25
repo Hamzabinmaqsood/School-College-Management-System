@@ -1,0 +1,85 @@
+<h1>Attendance settings</h1>
+<p><a routerLink="/attendance">Attendance register</a></p>
+@if (state.loading()) { <p role="status">Loading attendance settings…</p> }
+@if (state.error()) { <p class="error" role="alert">{{ state.error() }}</p> }
+@if (state.success()) { <p role="status">{{ state.success() }}</p> }
+@if (policy(); as config) {
+  <section class="panel">
+    <h2>Attendance policy</h2>
+    <form (ngSubmit)="savePolicy(config)">
+      <div class="attendance-fields">
+        <label>Primary dashboard mode <select name="mode" [(ngModel)]="config.primary_mode">
+          <option value="daily">Daily</option><option value="period">Subject period</option>
+        </select></label>
+        <label>Excused marks <select name="excused" [(ngModel)]="config.excused_policy">
+          <option value="exclude">Exclude from percentage</option><option value="attended">Count as attended</option>
+          <option value="missed">Count as missed</option>
+        </select></label>
+        <label><input type="checkbox" name="late" [(ngModel)]="config.late_attended"> Count late as attended</label>
+        <label><input type="checkbox" name="reject" [(ngModel)]="config.require_rejection_reason"> Require rejection remarks</label>
+      </div>
+      <fieldset><legend>Non-teaching weekdays</legend>
+        @for (day of weekdays; track day; let index = $index) {
+          <label><input type="checkbox" [checked]="config.non_teaching_weekdays.includes(index)" (change)="toggle(index, $any($event.target).checked)">{{ day }}</label>
+        }
+      </fieldset>
+      <button mat-flat-button [disabled]="!can('accounts.manage_attendance_settings') || state.loading()">Save policy</button>
+    </form>
+  </section>
+}
+@if (auth.has('attendance.view_attendanceholiday')) {
+  <section class="panel">
+    <h2>Calendar exceptions</h2>
+    @if (can('accounts.manage_attendance_calendar')) {
+      <form (ngSubmit)="saveHoliday()" class="attendance-fields">
+        <label>Date <input type="date" name="date" [(ngModel)]="holiday.date" required></label>
+        <label>Name <input name="name" [(ngModel)]="holiday.name" maxlength="120" required></label>
+        <label>Type <select name="kind" [(ngModel)]="holiday.kind">
+          <option value="public">Public holiday</option><option value="institution">Institution holiday</option>
+          <option value="closure">Closure</option><option value="working">Working-day exception</option>
+        </select></label>
+        <button mat-flat-button [disabled]="!holiday.date || !holiday.name.trim() || state.loading()">{{ holiday.id ? 'Update exception' : 'Add exception' }}</button>
+      </form>
+    }
+    @for (row of holidays(); track row.id) {
+      <p>{{ row['date'] }} · {{ row['name'] }} · {{ row['kind'] }}
+        @if (can('accounts.manage_attendance_calendar')) { <button mat-button (click)="editHoliday(row)">Edit</button> }
+      </p>
+    } @empty { @if (!state.loading()) { <p>No calendar exceptions configured.</p> } }
+  </section>
+}
+@if (auth.has('accounts.manage_teaching_assignments')) {
+  <section class="panel">
+    <h2>Teaching assignments</h2>
+    @if (can('accounts.manage_teaching_assignments')) {
+      <form class="attendance-fields" (ngSubmit)="assign()">
+        <label>User <select name="user" [(ngModel)]="assignment.user"><option value="">Choose a user</option>
+          @for (row of users(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }
+        </select></label>
+        <label>Session <select name="session" [(ngModel)]="assignment.session"><option value="">Choose a session</option>
+          @for (row of sessions(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }
+        </select></label>
+        <label>Class <select name="class" [(ngModel)]="assignment.academic_class" (ngModelChange)="assignment.section = ''"><option value="">Choose a class</option>
+          @for (row of classes(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }
+        </select></label>
+        <label>Section <select name="section" [(ngModel)]="assignment.section"><option value="">Unsectioned</option>
+          @for (row of sections(); track row.id) {
+            @if (row['academic_class'] === assignment.academic_class) { <option [value]="row.id">{{ row['name'] }}</option> }
+          }
+        </select></label>
+        <label>Subject <select name="subject" [(ngModel)]="assignment.subject"><option value="">Daily assignment</option>
+          @for (row of subjects(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }
+        </select></label>
+        <button mat-flat-button [disabled]="state.loading() || !assignment.user || !assignment.session || !assignment.academic_class">Assign group</button>
+      </form>
+    }
+    @for (row of assignments(); track row.id) {
+      <p>{{ row['username'] }} · {{ row['session_name'] }} · {{ row['class_name'] }} {{ row['section_name'] }} · {{ row['subject_name'] || 'Daily' }} ·
+        {{ row['active'] ? 'Active' : 'Inactive' }}
+        @if (can('accounts.manage_teaching_assignments')) {
+          <button mat-button (click)="toggleAssignment(row)" [disabled]="state.loading()">{{ row['active'] ? 'Deactivate' : 'Activate' }}</button>
+        }
+      </p>
+    } @empty { @if (!state.loading()) { <p>No teaching assignments configured.</p> } }
+  </section>
+}

@@ -1,0 +1,72 @@
+<section class="management-page license-page">
+  <header class="management-heading">
+    <div><h1>{{ activation ? 'Activate license' : 'Subscription' }}</h1>
+      <p>{{ installation()?.institution_name || auth.branding()?.name || 'Institution workspace' }}</p></div>
+    @if (!activation && installation()?.can_activate) {
+      <a mat-flat-button routerLink="/activation">{{ status()?.license ? 'Renew license' : 'Activate license' }}</a>
+    }
+    @if (activation) { <a mat-button routerLink="/subscription">Subscription details</a> }
+  </header>
+  @if (state.loading()) { <p class="notice" role="status">{{ activation ? 'Checking license…' : 'Loading subscription…' }}</p> }
+  @if (state.error() || formError()) { <p class="error-message" role="alert">{{ state.error() || formError() }}</p> }
+  @if (state.success()) { <p class="notice" role="status">{{ state.success() }}</p> }
+  <div class="license-grid">
+    <section class="panel management-form">
+      <h2>Installation</h2>
+      @if (installation(); as details) {
+        <dl class="license-details">
+          <div><dt>Installation ID</dt><dd><code>{{ details.installation_id }}</code></dd></div>
+          <div><dt>Institution ID</dt><dd><code>{{ details.institution_id }}</code></dd></div>
+        </dl>
+        <button mat-button type="button" (click)="copy()">Copy installation ID</button>
+      } @else { <p>Installation details appear after institution setup.</p> }
+      <p>Send both IDs to the vendor when requesting a new or renewed license.</p>
+    </section>
+    <section class="panel management-form">
+      <h2>License status</h2>
+      @if (status(); as current) {
+        <div><span class="license-status" [class]="tone(current.status)">{{ label(current.status) }}</span></div>
+        @if (reminder(current); as message) { <p>{{ message }}</p> }
+        @if (current.license; as license) {
+          <dl class="license-details">
+            <div><dt>License ID</dt><dd><code>{{ license.license_id }}</code></dd></div>
+            <div><dt>Edition</dt><dd>{{ license.edition }}</dd></div>
+            <div><dt>Duration</dt><dd>{{ duration[license.duration] }}</dd></div>
+            <div><dt>Activated</dt><dd>{{ license.activated_at | date:'medium':'UTC' }} UTC</dd></div>
+            <div><dt>Expires</dt><dd>{{ license.expires_at | date:'medium':'UTC' }} UTC</dd></div>
+            <div><dt>Days remaining</dt><dd>{{ current.days_remaining }}</dd></div>
+            @if (current.grace_deadline) {
+              <div><dt>Grace deadline</dt><dd>{{ current.grace_deadline | date:'medium':'UTC' }} UTC</dd></div>
+            }
+            <div><dt>Enabled features</dt><dd>{{ license.features.join(', ') || 'None' }}</dd></div>
+          </dl>
+        }
+      } @else { <p>Waiting for license information.</p> }
+    </section>
+  </div>
+  @if (activation && installation()?.can_activate) {
+    <form class="panel management-form" (ngSubmit)="submit(fileInput)">
+      <h2>Import signed license</h2>
+      <label>License file <input #fileInput type="file" accept=".smslicense,.license,.txt" (change)="choose($event)"></label>
+      <label>Or paste the activation code
+        <textarea name="token" [(ngModel)]="pasted" maxlength="16384" rows="4" autocomplete="off" spellcheck="false"></textarea>
+      </label>
+      <div><button mat-flat-button type="submit" [disabled]="state.loading()">Activate license</button></div>
+    </form>
+  }
+  @if (!activation) {
+    <section class="panel table-wrap">
+      <h2>Activation history</h2>
+      <table><caption class="visually-hidden">Verified activation history</caption>
+        <thead><tr><th scope="col">License ID</th><th scope="col">Edition</th><th scope="col">Activated</th><th scope="col">Expiration</th><th scope="col">Status</th></tr></thead>
+        <tbody>@for (item of history()?.results ?? []; track item.license_id) {
+          <tr><td><code>{{ item.license_id }}</code></td><td>{{ item.edition }}</td>
+              <td>{{ item.activated_at | date:'mediumDate':'UTC' }}</td><td>{{ item.expires_at | date:'mediumDate':'UTC' }}</td>
+              <td>{{ item.current ? 'Current' : 'Previous' }}</td></tr>
+        } @empty { <tr><td colspan="5">No verified activation history.</td></tr> }</tbody>
+      </table>
+      <div class="button-row"><button mat-button [disabled]="!history()?.previous || state.loading()" (click)="loadHistory(offset - 20)">Previous</button>
+        <button mat-button [disabled]="!history()?.next || state.loading()" (click)="loadHistory(offset + 20)">Next</button></div>
+    </section>
+  }
+</section>

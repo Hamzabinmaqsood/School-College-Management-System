@@ -1,0 +1,262 @@
+<div class="management-page">
+  <h1>{{ config[0] }}</h1>
+  <nav class="attendance-links" aria-label="Fee management">
+    @for (item of menu; track item[0]) {
+      @if (auth.has(item[1][1])) {
+        <a [routerLink]="item[0] === 'overview' ? '/fees' : '/fees/' + item[0]">{{ item[1][0] }}</a>
+      }
+    }
+  </nav>
+  @if (state.loading()) { <p role="status">Loading financial records…</p> }
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  @if (state.success()) { <p role="status" class="notice">{{ state.success() }}</p> }
+  @if (config[2] && !canEdit && !state.loading()) {
+    <p>Financial changes require write permission and an active fee entitlement.</p>
+  }
+
+  @if (overview(); as stats) {
+    <section class="metrics" aria-label="Fee totals">
+      @for (metric of [
+        ['invoiced','Fees invoiced'], ['collected_this_month','Collected this month'],
+        ['outstanding','Outstanding'], ['overdue','Overdue'],
+        ['collection_rate','Collection rate'], ['collected_today','Collected today']
+      ]; track metric[0]) {
+        <article class="panel metric">
+          <h2>{{ metric[1] }}</h2>
+          <strong>{{ metric[0] === 'collection_rate' ? (stats[metric[0]!] === null ? '—' : stats[metric[0]!] + '%')
+            : 'PKR ' + stats[metric[0]!] }}</strong>
+        </article>
+      }
+    </section>
+    <div class="attendance-rows">
+      <section class="panel"><h2>Collected and outstanding</h2>
+        @if (stats['collection_rate'] !== null) {
+          <meter min="0" max="100" [value]="$any(stats['collection_rate'])" aria-label="Percentage collected"></meter>
+          <p>{{ stats['collection_rate'] }}% collected · PKR {{ stats['outstanding'] }} outstanding</p>
+        } @else { <p>No issued charges.</p> }
+      </section>
+      @for (chart of [['trend','Monthly collections'], ['classes','Class receivables'], ['methods','Payment methods']]; track chart[0]) {
+        <section class="panel"><h2>{{ chart[1] }}</h2>
+        @for (row of chartRows(stats[chart[0]!]); track $index) {
+          <p>{{ row['period'] || row['group'] }} · PKR {{ row['amount'] ?? row['outstanding'] }}</p>
+          <meter min="0" max="100" [value]="chartPercent(row['amount'] ?? row['outstanding'], chartRows(stats[chart[0]!]))"
+            [attr.aria-label]="display(row['period'] || row['group']) + ' relative to the largest amount'"></meter>
+        } @empty { <p>No activity recorded.</p> }
+        </section>
+      }
+    </div>
+  }
+
+  @if (fields.length && (canEdit || kind === 'settings')) {
+    <section class="panel">
+      <h2>{{ kind === 'billing' ? 'Billing scope' : kind === 'settings' ? 'Institution policy' : editing ? 'Edit record' : 'Add record' }}</h2>
+      @if (lookups()['students'] || lookups()['enrollments']) {
+        <div class="attendance-fields">
+          <label>Find student <input [(ngModel)]="userSearch"></label>
+          <button mat-button (click)="searchStudents()" [disabled]="state.loading()">Search</button>
+        </div>
+      }
+      <form [formGroup]="form" (ngSubmit)="kind === 'billing' ? previewBills() : save()">
+        <div class="attendance-fields">
+          @for (field of fields; track field.key) {
+            <label [attr.for]="field.key">{{ field.label }}
+              @if (field.lookup) {
+                <select [id]="field.key" [formControlName]="field.key"><option value="">Choose {{ field.label.toLowerCase() }}</option>
+                  @for (row of choices(field); track row['id']) { <option [value]="row['id']">{{ option(row) }}</option> }
+                </select>
+              } @else if (field.options) {
+                <select [id]="field.key" [formControlName]="field.key">
+                  @for (item of field.options; track item[0]) { <option [value]="item[0]">{{ item[1] }}</option> }
+                </select>
+              } @else { <input [id]="field.key" [type]="field.type || 'text'" [formControlName]="field.key"> }
+            </label>
+          }
+        </div>
+        @if (kind === 'structures') {
+          <h3>Fee lines</h3>
+          @for (line of lines(); track line; let index = $index) {
+            <div class="attendance-fields" [formGroup]="line">
+              <label>Category <select formControlName="category"><option value="">Choose a category</option>
+                @for (row of (lookups()['categories'] ?? []); track row['id']) { <option [value]="row['id']">{{ option(row) }}</option> }
+              </select></label>
+              <label>Amount <input formControlName="amount" inputmode="decimal"></label>
+              <label>Recurrence <select formControlName="recurrence">
+                @for (option of lineFields[2]?.options; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }
+              </select></label>
+              @if (lines().length > 1) {
+                <button type="button" mat-button (click)="removeLine(index)">Remove line</button>
+              }
+            </div>
+          }
+          <button type="button" mat-button (click)="addLine()">Add fee line</button>
+        }
+        <button mat-flat-button [disabled]="state.loading() || form.invalid || (kind !== 'billing' && !canEdit)">
+          {{ kind === 'billing' ? 'Preview bills' : 'Save record' }}</button>
+      </form>
+    </section>
+  }
+  @if (preview(); as result) {
+    <section class="panel">
+      <h2>Billing totals</h2>
+      <p>{{ result['eligible'] }} students · {{ result['invoices'] }} invoices · {{ result['duplicate_lines'] }} duplicate lines skipped</p>
+      <p>PKR {{ result['subtotal'] }} gross · PKR {{ result['discount'] }} discounts · PKR {{ result['total'] }} net</p>
+      @if ($any(result['no_charge_students']).length) { <p>Students without charges: {{ result['no_charge_students'] }}</p> }
+      @if (billingPayload && canEdit) {
+        <button mat-flat-button (click)="generate()" [disabled]="state.loading()">Generate invoices</button>
+      }
+      @if (result['batch'] && auth.has('accounts.print_fee_challan')) {
+        <a [href]="'/api/v1/fees/invoices/challans/?batch=' + result['batch']" target="_blank" rel="noopener">Print challans</a>
+      }
+    </section>
+  }
+
+  @if (kind === 'collect') {
+    <section class="panel">
+      <h2>Select a student</h2>
+      <div class="attendance-fields">
+        <label>Name or admission number <input [(ngModel)]="userSearch"></label>
+        <button mat-stroked-button (click)="searchStudents()" [disabled]="state.loading()">Search students</button>
+        <label>Student <select [value]="collection.controls['student']?.value" (change)="changeStudent($any($event.target).value)"
+          [disabled]="state.loading()">
+          <option value="">Choose a student</option>
+          @for (student of (lookups()['students'] ?? []); track student['id']) {
+            <option [value]="student['id']">{{ option(student) }}</option>
+          }
+        </select></label>
+      </div>
+      @if (receipt() && auth.has("accounts.print_fee_receipt")) {
+        <p><a [href]="'/api/v1/fees/payments/' + receipt() + '/receipt/'" target="_blank" rel="noopener">Print receipt</a></p>
+      }
+      @if (rows().length) {
+        <form [formGroup]="collection" (ngSubmit)="post()">
+          <div class="attendance-fields">
+            <label>Date received <input type="date" formControlName="date" [max]="date"></label>
+            <label>Method <select formControlName="method"><option value="">Choose a method</option>
+              @for (method of methods; track method) { <option [value]="method">{{ label(method) }}</option> }
+            </select></label>
+            <label>External reference <input formControlName="external_reference" maxlength="90"></label>
+          </div>
+          <div class="attendance-rows">
+            @for (row of rows(); track row['id']) {
+              <article>
+                <strong>{{ row['number'] }}</strong>
+                <p>Due {{ row['due_date'] }} · PKR {{ row['outstanding'] }} outstanding</p>
+                <label>Allocate PKR <input inputmode="decimal"
+                  [value]="allocations()[display(row['id'])] || ''"
+                  (input)="allocation(display(row['id']), $any($event.target).value)"></label>
+              </article>
+            }
+          </div>
+          <p>Payment total: {{ payment() ? 'PKR ' + payment()?.amount : 'Enter allocations within each invoice balance.' }}</p>
+          <button mat-flat-button [disabled]="state.loading() || !payment() || collection.invalid || !canEdit">Review payment</button>
+        </form>
+      } @else if (collection.controls['student']?.value && !state.loading()) {
+        <p>No outstanding invoices for this student.</p>
+      }
+    </section>
+  } @else if (!['overview','settings'].includes(kind)) {
+    <section class="panel">
+      <h2>{{ kind === 'billing' ? 'Generation history' : 'Records' }}</h2>
+      <div class="attendance-fields">
+        @if (kind === 'reports') {
+          <label>Report <select [(ngModel)]="report">
+            @for (item of reports; track item) { <option [value]="item">{{ label(item) }}</option> }
+          </select></label>
+        }
+        <label>Search <input [(ngModel)]="filter.search"></label>
+        @if (['reports','outstanding'].includes(kind)) {
+          <label>From <input type="date" [(ngModel)]="filter.from_date"></label>
+          <label>Through <input type="date" [(ngModel)]="filter.to_date"></label>
+          @for (scope of [['session','sessions'], ['academic_class','classes'], ['section','sections']]; track scope[0]) {
+            <label>{{ label(scope[0]!) }} <select [(ngModel)]="$any(filter)[scope[0]!]">
+              <option value="">All</option>
+              @for (row of (lookups()[scope[1]!] ?? []); track row['id']) {
+                <option [value]="row['id']">{{ option(row) }}</option>
+              }
+            </select></label>
+          }
+          @if (kind === 'reports') {
+            <label>Payment method <select [(ngModel)]="filter.method"><option value="">All</option>
+              @for (method of methods; track method) { <option [value]="method">{{ label(method) }}</option> }
+            </select></label>
+          }
+        }
+        <button mat-stroked-button (click)="reload()" [disabled]="state.loading()">Apply filters</button>
+      </div>
+      @if (['reports','outstanding'].includes(kind) && auth.has('accounts.export_fee_reports')) {
+        <div class="attendance-links">
+          <a [href]="reportLink()">Export CSV</a>
+          <a [href]="reportLink(true)" target="_blank" rel="noopener">Printable report</a>
+        </div>
+      }
+      @if (correction(); as change) {
+        <div class="attendance-fields">
+          <label>Correction reason <input [(ngModel)]="reason" maxlength="400"></label>
+          <button mat-flat-button [disabled]="!reason.trim() || state.loading()" (click)="runAction(change.row, change.path, {reason})">Confirm correction</button>
+          <button mat-button (click)="correction.set(null)">Cancel</button>
+        </div>
+      }
+      @if (rows().length) {
+        <div class="attendance-table" role="region" aria-label="Fee records" tabindex="0">
+          <table><thead><tr>
+            @for (column of columns(); track column) { <th scope="col">{{ label(column) }}</th> }
+            <th scope="col">Actions</th>
+          </tr></thead>
+          <tbody>@for (row of rows(); track $index) {
+            <tr>
+              @for (column of columns(); track column) { <td>{{ display(row[column]) }}</td> }
+              <td>
+                @if (mayEdit(row)) { <button mat-button (click)="edit(row)">Edit</button> }
+                @if (kind === 'structures' && canEdit) {
+                  <button mat-button (click)="copyDraft(row)">Copy to draft</button>
+                }
+                @if (kind === 'outstanding') {
+                  <div class="attendance-links">
+                    @if (auth.has('accounts.view_student_details')) {
+                      <a [routerLink]="['/students', row['student_id']]">Student profile</a>
+                    }
+                    @if (auth.has('accounts.collect_fees')) {
+                      <a routerLink="/fees/collect" [queryParams]="{student: row['student_id']}">Collect</a>
+                    }
+                    @if (auth.has('accounts.print_fee_challan')) {
+                      <a [href]="'/api/v1/fees/invoices/' + row['invoice_id'] + '/challan/'" target="_blank" rel="noopener">Challan</a>
+                    }
+                  </div>
+                }
+                @if (kind === 'structures' && row['status'] === 'draft' && canEdit) {
+                  <button mat-button (click)="action(row, 'activate', 'fees.change_feestructure')">Activate</button>
+                }
+                @if (kind === 'structures' && row['status'] === 'active' && canEdit) {
+                  <button mat-button (click)="action(row, 'retire', 'fees.change_feestructure')">Retire</button>
+                }
+                @if (kind === 'concessions' && row['status'] === 'pending' && can('accounts.approve_fee_concession')) {
+                  <button mat-button (click)="action(row, 'approve', 'accounts.approve_fee_concession')">Approve</button>
+                }
+                @if (kind === 'invoices' && auth.has('accounts.print_fee_challan')) {
+                  <a [href]="'/api/v1/fees/invoices/' + row['id'] + '/challan/'" target="_blank" rel="noopener">Challan</a>
+                }
+                @if (kind === 'invoices' && row['status'] !== 'voided' && can('accounts.void_fee_invoice')) {
+                  <button mat-button (click)="action(row, 'void', 'accounts.void_fee_invoice', true)">Void</button>
+                }
+                @if (kind === 'payments' && auth.has('accounts.print_fee_receipt')) {
+                  <a [href]="'/api/v1/fees/payments/' + row['id'] + '/receipt/'" target="_blank" rel="noopener">Receipt</a>
+                }
+                @if (kind === 'payments' && !row['reversed'] && can('accounts.reverse_fee_payment')) {
+                  <button mat-button (click)="action(row, 'reverse', 'accounts.reverse_fee_payment', true)">Reverse</button>
+                }
+                @if (kind === 'adjustments' && !row['approved_at'] && can('accounts.approve_fee_adjustment')) {
+                  <button mat-button (click)="action(row, 'approve', 'accounts.approve_fee_adjustment')">Approve</button>
+                }
+              </td>
+            </tr>
+          }</tbody></table>
+        </div>
+        <div class="attendance-links">
+          <button mat-button [disabled]="!offset || state.loading()" (click)="reload(offset-25)">Previous</button>
+          <span>{{ offset + 1 }}–{{ offset + rows().length }} of {{ count() }}</span>
+          <button mat-button [disabled]="offset + 25 >= count() || state.loading()" (click)="reload(offset+25)">Next</button>
+        </div>
+      } @else if (!state.loading()) { <p>No financial records match these filters.</p> }
+    </section>
+  }
+</div>

@@ -1,0 +1,102 @@
+@if (!studentId) {
+  <h1>Attendance reports</h1>
+  <p><a routerLink="/attendance">Attendance register</a> · <a routerLink="/attendance/history">History</a></p>
+}
+<section class="panel">
+  @if (studentId) { <h2>Student attendance</h2> }
+  <form class="attendance-fields" (ngSubmit)="apply()">
+    <label>From <input name="from" type="date" [(ngModel)]="filters.from_date"></label>
+    <label>Through <input name="to" type="date" [(ngModel)]="filters.to_date"></label>
+    <label>Mode <select name="mode" [(ngModel)]="filters.mode">
+      <option value="daily">Daily</option><option value="period">Subject period</option>
+    </select></label>
+    @if (choices(); as available) {
+      <label>Academic session <select name="session" [(ngModel)]="filters.session"><option value="">All sessions</option>
+        @for (row of available.sessions; track row['id']) { <option [value]="row['id']">{{ row['name'] }}</option> }
+      </select></label>
+      @if (!studentId) {
+        <label>Class <select name="class" [(ngModel)]="filters.academic_class" (ngModelChange)="filters.section = ''">
+          <option value="">All classes</option>
+          @for (row of available.classes; track row['id']) { <option [value]="row['id']">{{ row['name'] }}</option> }
+        </select></label>
+        <label>Section <select name="section" [(ngModel)]="filters.section"><option value="">All sections</option>
+          @for (row of available.sections; track row['id']) {
+            @if (!filters.academic_class || filters.academic_class === row['academic_class']) {
+              <option [value]="row['id']">{{ row['name'] }}</option>
+            }
+          }
+        </select></label>
+        @if (filters.mode === 'period') {
+          <label>Subject <select name="subject" [(ngModel)]="filters.subject"><option value="">All subjects</option>
+            @for (row of available.subjects; track row['id']) { <option [value]="row['id']">{{ row['name'] }}</option> }
+          </select></label>
+        }
+        <label>Student <select name="student" [(ngModel)]="filters.student"><option value="">All students</option>
+          @for (row of available.students; track row['id']) {
+            <option [value]="row['id']">{{ row['first_name'] }} {{ row['last_name'] }} · {{ row['admission_number'] }}</option>
+          }
+        </select></label>
+      }
+    }
+    @if (!studentId) {
+      <label>Report <select name="report" [(ngModel)]="filters.report">
+        @for (report of reports; track report[0]) {
+          @if (report[0] !== 'leave' || auth.has('attendance.view_studentleaverequest')) {
+            <option [value]="report[0]">{{ report[1] }}</option>
+          }
+        }
+      </select></label>
+      @if (filters.report === 'low') {
+        <label>Below (%) <input name="threshold" type="number" min="0" max="100" [(ngModel)]="filters.threshold"></label>
+      }
+    }
+    <button mat-flat-button [disabled]="state.loading()">Apply filters</button>
+  </form>
+  @if (!studentId && page() && !state.error()) {
+    <p class="attendance-links">
+      @if (auth.has('accounts.export_attendance')) { <a [href]="link('export')">Download CSV</a> }
+      @if (auth.has('accounts.print_attendance')) { <a [href]="link('print')" target="_blank" rel="noopener">Printable view</a> }
+    </p>
+  }
+  @if (state.loading()) { <p role="status">Loading report…</p> }
+  @if (state.error()) { <p role="alert" class="error">{{ state.error() }}</p> }
+  @if (!state.error() && student(); as data) {
+    <p>{{ data.totals.eligible }} eligible sessions · Attendance {{ data.totals.percentage === null ? '—' : data.totals.percentage + '%' }} · Present {{ data.totals.present }} ·
+      Absent {{ data.totals.absent }} · Late {{ data.totals.late }} · Excused {{ data.totals.excused }} · Unmarked {{ data.totals.unmarked }}</p>
+    @if (data.approved_leaves; as leaves) {
+      <h3>Approved leave</h3>
+      @for (leave of leaves; track leave['id']) {
+        <p>{{ leave['start_date'] }} to {{ leave['end_date'] }} · {{ leave['session__name'] }}</p>
+      } @empty { <p>No approved leave in this date range.</p> }
+    }
+    <h3>Attendance calendar</h3>
+    <label>Calendar month <input type="month" [(ngModel)]="month" (change)="showMonth()"></label>
+    <div class="attendance-calendar">
+      @for (day of data.calendar; track day.date) {
+        <article><strong>{{ day.date }}</strong><p>{{ day.percentage === null ? 'No finalized marks' : day.percentage + '%' }}</p></article>
+      } @empty { <p>No attendance dates in this range.</p> }
+    </div>
+    @if (data.subjects.length) {
+      <h3>Attendance by subject</h3>
+      @for (subject of data.subjects; track subject['register__subject__name']) {
+        <p>{{ subject['register__subject__name'] }} · {{ subject['percentage'] === null ? '—' : subject['percentage'] + '%' }}</p>
+      }
+    }
+  }
+  @if (!state.error() && page(); as data) {
+    @if (data.results.length) {
+      <div class="attendance-table" tabindex="0" role="region" aria-label="Attendance report results">
+        <table><thead><tr>@for (column of columns(); track column) { <th scope="col">{{ title(column) }}</th> }</tr></thead>
+          <tbody>@for (row of data.results; track $index) {
+            <tr>@for (column of columns(); track column) { <td>{{ row[column] ?? '—' }}</td> }</tr>
+          }</tbody>
+        </table>
+      </div>
+      <div class="attendance-links">
+        <button mat-button (click)="load(offset - limit)" [disabled]="!data.previous || state.loading()">Previous</button>
+        <span>{{ offset + 1 }}–{{ offset + data.results.length }} of {{ data.count }}</span>
+        <button mat-button (click)="load(offset + limit)" [disabled]="!data.next || state.loading()">Next</button>
+      </div>
+    } @else { <p>No records match these filters.</p> }
+  }
+</section>

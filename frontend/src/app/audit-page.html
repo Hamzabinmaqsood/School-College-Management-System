@@ -1,0 +1,28 @@
+<section class="management-page">
+  <header class="management-heading"><div><h1>Audit logs</h1><p>Review recorded security and administration events.</p></div></header>
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  <form class="filter-bar" (ngSubmit)="load()">
+    <label>Search <input name="search" [(ngModel)]="fields.search"></label>
+    <label>Action code <input name="action" [(ngModel)]="fields.action"></label>
+    <label>Actor username <input name="actor" [(ngModel)]="fields.user"></label>
+    <label>From <input type="date" name="from" [(ngModel)]="fields.from"></label>
+    <label>To <input type="date" name="to" [(ngModel)]="fields.to"></label>
+    <button mat-button type="submit">Filter</button>
+  </form>
+  @if (selected(); as event) {
+    <section class="panel management-form"><h2>{{ event.action }}</h2>
+      <p>Target {{ event.resource }} {{ event.resource_id || '—' }}</p><p>Request ID {{ event.request_id || '—' }}</p>
+      <pre>{{ event.metadata | json }}</pre><button mat-button (click)="selected.set(null)">Close details</button>
+    </section>
+  }
+  @if (state.loading()) { <p class="notice" role="status">Loading audit events…</p> }
+  <div class="panel table-wrap"><table><caption class="visually-hidden">Audit events</caption>
+    <thead><tr><th scope="col">Time</th><th scope="col">Action</th><th scope="col">Actor</th><th scope="col">Resource</th><th scope="col">Details</th></tr></thead>
+    <tbody>@for (event of page()?.results ?? []; track event.id) {
+      <tr><td>{{ event.timestamp | date:'medium' }}</td><td>{{ event.action }}</td>
+        <td>{{ event.actor || 'Anonymous' }}</td><td>{{ event.resource }}</td>
+        <td><button mat-button (click)="inspect(event.id)">Details</button></td></tr>
+    } @empty { <tr><td colspan="5">No audit events match your filters.</td></tr> }</tbody>
+  </table><div class="button-row"><button mat-button [disabled]="!page()?.previous" (click)="load(offset - 20)">Previous</button>
+    <button mat-button [disabled]="!page()?.next" (click)="load(offset + 20)">Next</button></div></div>
+</section>

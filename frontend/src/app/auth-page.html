@@ -1,0 +1,36 @@
+<main class="auth-layout">
+  <aside class="auth-brand">
+    @if (auth.branding()?.logo_url; as logo) {
+      <img [src]="logo" alt="" class="institution-mark">
+    } @else {
+      <span class="brand-mark"><mat-icon>school</mat-icon></span>
+    }
+    <h2>{{ auth.branding()?.name || 'School & College' }}</h2>
+    <p>Administration workspace</p>
+  </aside>
+  <div class="auth-content">
+    <section>
+      <h1>{{ change ? 'Change password' : 'Sign in' }}</h1>
+      <p>{{ change ? 'Choose a new password to secure your account.' : 'Use your institution account to access the workspace.' }}</p>
+      @if (auth.expired() && !change) { <p class="notice">Your session expired. Sign in again.</p> }
+      @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
+      <form [formGroup]="form" (ngSubmit)="submit()" class="management-form">
+        @if (!change) {
+          <label>Username <input formControlName="username" autocomplete="username" required maxlength="150"></label>
+        }
+        <label>{{ change ? 'Current password' : 'Password' }}
+          <span class="password-field">
+            <input formControlName="password" [type]="visible() ? 'text' : 'password'" autocomplete="current-password" required maxlength="256">
+            <button type="button" mat-icon-button [attr.aria-label]="visible() ? 'Hide password' : 'Show password'" (click)="visible.set(!visible())">
+              <mat-icon>{{ visible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </span>
+        </label>
+        @if (change) { <label>New password <input type="password" formControlName="newPassword" autocomplete="new-password" required maxlength="256"></label> }
+        @if (form.invalid && form.touched) { <p class="error-message">Complete the required fields.</p> }
+        <button mat-flat-button type="submit" [disabled]="loading()">{{ loading() ? 'Please wait…' : change ? 'Save password' : 'Sign in' }}</button>
+        @if (change) { <button type="button" mat-button (click)="leave()">Sign out</button> }
+      </form>
+    </section>
+  </div>
+</main>

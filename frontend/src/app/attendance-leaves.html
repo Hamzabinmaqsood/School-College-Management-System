@@ -1,0 +1,66 @@
+<h1>Student leave</h1>
+<p><a routerLink="/attendance">Attendance register</a></p>
+@if (state.loading()) { <p role="status">Loading leave requests…</p> }
+@if (state.error()) { <p role="alert" class="error">{{ state.error() }}</p> }
+@if (state.success()) { <p role="status">{{ state.success() }}</p> }
+@if (can('attendance.add_studentleaverequest')) {
+  <section class="panel">
+    <h2>New leave request</h2>
+    <form (ngSubmit)="submit()" class="attendance-fields">
+      <label>Session <select name="session" [(ngModel)]="draft.session" (ngModelChange)="choices()" required>
+        <option value="">Choose a session</option>
+        @for (session of sessions(); track session.id) { <option [value]="session.id">{{ session['name'] }}</option> }
+      </select></label>
+      <label>First day <input name="from" type="date" [(ngModel)]="draft.start_date" (change)="choices()" required></label>
+      <label>Last day <input name="to" type="date" [(ngModel)]="draft.end_date" [min]="draft.start_date" required></label>
+      <label>Find student <input name="search" [(ngModel)]="search" (change)="choices()" placeholder="Name or admission number"></label>
+      <label>Student <select name="student" [(ngModel)]="draft.student" required>
+        <option value="">Choose a student</option>
+        @for (student of students(); track student.id) { <option [value]="student.id">{{ student['name'] }} · {{ student['admission_number'] }}</option> }
+      </select></label>
+      <label>Reason <input name="reason" [(ngModel)]="draft.reason" maxlength="400" required></label>
+      <button mat-flat-button [disabled]="state.loading() || !draft.student || !draft.reason.trim() ||
+        !draft.end_date || draft.end_date < draft.start_date">Submit request</button>
+    </form>
+  </section>
+} @else { <p>Leave requests are read-only for your current permissions or license.</p> }
+<section class="panel">
+  <h2>Leave requests</h2>
+  <div class="attendance-fields">
+  <label>Status <select [(ngModel)]="filters.status">
+    <option value="">All statuses</option><option>pending</option><option>approved</option><option>rejected</option><option>cancelled</option>
+  </select></label>
+  <label>From <input type="date" [(ngModel)]="filters.from_date"></label>
+  <label>Through <input type="date" [(ngModel)]="filters.to_date"></label>
+  <label>Class <select [(ngModel)]="filters.enrollment__academic_class">
+    <option value="">All classes</option>
+    @for (row of classes(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }
+  </select></label>
+  <button mat-stroked-button (click)="load()" [disabled]="state.loading()">Filter requests</button>
+  </div>
+  @for (item of requests(); track item.id) {
+    <p><button mat-button (click)="detail(item.id)" [disabled]="state.loading()">{{ item.student_name }} · {{ item.class_name }}</button>
+      {{ item.start_date }} to {{ item.end_date }} · {{ item.status }}</p>
+  } @empty { <p>No leave requests match this filter.</p> }
+</section>
+@if (selected(); as item) {
+  <section class="panel">
+    <h2>{{ item.student_name }} · {{ item.status }}</h2>
+    <p>{{ item.start_date }} to {{ item.end_date }}</p><p>{{ item.reason }}</p>
+    @if ((item.status === 'pending' && can('accounts.review_attendance_leave')) ||
+        ((item.status === 'pending' || item.status === 'approved') && can('accounts.cancel_attendance_leave'))) {
+      <label>Review remarks <input [(ngModel)]="remarks" maxlength="400"></label>
+    }
+    <div class="attendance-links">
+      @if (item.status === 'pending' && can('accounts.review_attendance_leave')) {
+        <button mat-flat-button (click)="decide(item.id, 'approve')" [disabled]="state.loading()">Approve leave</button>
+        <button mat-stroked-button (click)="decide(item.id, 'reject')" [disabled]="state.loading()">Reject leave</button>
+      }
+      @if ((item.status === 'pending' || item.status === 'approved') && can('accounts.cancel_attendance_leave')) {
+        <button mat-stroked-button (click)="decide(item.id, 'cancel')" [disabled]="state.loading()">Cancel request</button>
+      }
+    </div>
+    <h3>Decision history</h3>
+    @for (decision of item.decisions; track $index) { <p>{{ decision.status }} · {{ decision.created_at }} · {{ decision.remarks }}</p> }
+  </section>
+}

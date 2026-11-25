@@ -1,0 +1,44 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav id="workspace-nav" class="sidebar" [mode]="compact() ? 'over' : 'side'" [opened]="opened()" (openedChange)="setNavigation($event)">
+    <a class="brand" routerLink="/dashboard" (click)="compact() && setNavigation(false)">
+      @if (auth.branding()?.logo_url; as logo) {
+        <img [src]="logo" alt="" class="institution-mark">
+      } @else { <span class="brand-mark"><mat-icon>school</mat-icon></span> }
+      <span><strong>{{ auth.branding()?.name || 'School & College' }}</strong><small>Administration workspace</small></span>
+    </a>
+    <nav aria-label="Main navigation">
+      @for (group of navigation(); track group.title) {
+        <section class="nav-group" [attr.aria-label]="group.title">
+          <h2>{{ group.title }}</h2>
+          @for (item of group.items; track item.path) {
+            <a [routerLink]="['/', item.path]" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="compact() && setNavigation(false)">
+              <mat-icon>{{ item.icon }}</mat-icon><span>{{ item.label }}</span>
+            </a>
+          }
+        </section>
+      }
+    </nav>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <header class="topbar">
+      <button mat-icon-button type="button" aria-label="Toggle sidebar" aria-controls="workspace-nav" [attr.aria-expanded]="opened()" (click)="setNavigation(!opened())">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a routerLink="/dashboard">{{ auth.branding()?.name || 'Workspace' }}</a><mat-icon aria-hidden="true">chevron_right</mat-icon><span aria-current="page">{{ page() }}</span>
+      </nav>
+      <button class="profile" mat-button type="button" [matMenuTriggerFor]="profileMenu" aria-label="Account profile">
+        <span class="avatar">{{ profile().slice(0, 2).toUpperCase() }}</span><span class="profile-name">{{ profile() }}</span><mat-icon iconPositionEnd>expand_more</mat-icon>
+      </button>
+      <mat-menu #profileMenu="matMenu">
+        <button mat-menu-item type="button" (click)="toggleTheme()"><mat-icon>{{ dark() ? 'light_mode' : 'dark_mode' }}</mat-icon>{{ dark() ? 'Light theme' : 'Dark theme' }}</button>
+        @if (auth.user(); as user) {
+          <div class="menu-identity"><strong>{{ profile() }}</strong><small>{{ user.roles.length ? user.roles[0]?.name : 'No active role' }}</small></div>
+        }
+        <a mat-menu-item routerLink="/change-password"><mat-icon>key</mat-icon>Change password</a>
+        <button mat-menu-item type="button" (click)="signOut()"><mat-icon>logout</mat-icon>Sign out</button>
+      </mat-menu>
+    </header>
+    <main id="main-content" class="main">@if (sessionError()) { <p class="error-message" role="alert">{{ sessionError() }}</p> }<router-outlet /></main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

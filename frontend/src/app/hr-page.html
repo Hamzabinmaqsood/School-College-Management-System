@@ -1,0 +1,580 @@
+<h1>{{ id && page === 'employees' ? 'Employee profile' : title[0] }}</h1>
+<nav class="attendance-links" aria-label="Human resources">
+  @for (item of menu; track item[0]) {
+    @if (auth.has(item[1][1])) {
+      <a [routerLink]="item[0] === 'overview' ? '/hr' : '/hr/' + item[0]">{{ item[1][0] }}</a>
+    }
+  }
+</nav>
+@if (state.loading()) { <p role="status">Loading records…</p> }
+@if (state.error()) { <p role="alert" class="error-message">{{ state.error() }}</p> }
+@if (state.success()) { <p role="status">{{ state.success() }}</p> }
+@if (page === 'attendance' && !id && auth.has('accounts.view_staff_attendance')) {
+  <section class="panel">
+    <h2>Monthly attendance calendar</h2>
+    <form class="attendance-fields" (submit)="$event.preventDefault(); loadCalendar(calendarEmployee.value, calendarMonth.value)">
+      <label for="calendar-employee">Employee ID
+        <input #calendarEmployee id="calendar-employee" list="staff-calendar-people" required>
+        <datalist id="staff-calendar-people">
+          @for (person of lookups()['employees'] ?? []; track person['id']) {
+            <option [value]="person['id']">{{ name(person) }}</option>
+          }
+        </datalist>
+      </label>
+      <label for="calendar-month">Month
+        <input #calendarMonth id="calendar-month" type="month" required>
+      </label>
+      <button mat-flat-button [disabled]="state.loading()">Show calendar</button>
+    </form>
+    @if (calendarDays(); as days) {
+      <ul class="attendance-calendar">
+        @for (day of days; track day['date']) {
+          <li>
+            <strong>{{ day['date'] }}</strong> · {{ label('' + day['status']) }}
+            @if (day['shift_start']) {
+              <span> · {{ day['shift_start'] }} to {{ day['shift_end'] }}{{ day['overnight'] ? ' next day' : '' }}</span>
+            }
+            @if (day['check_in']) { <span> · Check-in {{ day['check_in'] }}</span> }
+            @if (day['check_out']) { <span> · Check-out {{ day['check_out'] }}</span> }
+            @if (day['calendar_exception']) { <span> · {{ day['calendar_exception'] }}</span> }
+            @if (day['overtime_hours']) { <span> · {{ day['overtime_hours'] }} h approved overtime</span> }
+            @if (day['late']) { <span> · {{ day['late_minutes'] }} min late</span> }
+            @if (day['early']) { <span> · {{ day['early_minutes'] }} min early</span> }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}
+@if (page === 'attendance' && !id && (lookups()['departments'] ?? []).length) {
+  <section class="panel">
+    <h2>Department attendance overview</h2>
+    <form class="attendance-fields" (submit)="$event.preventDefault(); loadDepartmentCalendar(department.value, departmentMonth.value)">
+      <label>Department
+        <select #department required>
+          <option value="">Select a department</option>
+          @for (option of lookups()['departments']; track option['id']) {
+            <option [value]="option['id']">{{ name(option) }}</option>
+          }
+        </select>
+      </label>
+      <label>Month <input #departmentMonth type="month" required></label>
+      <button mat-flat-button [disabled]="state.loading()">Show recorded totals</button>
+    </form>
+    @if (departmentCalendar(); as totals) {
+      @for (row of totals; track $index) {
+        <p>{{ row['date'] }} · {{ label('' + row['status']) }} · {{ row['count'] }}</p>
+      } @empty { <p>There are no attendance records for this department and month.</p> }
+    }
+  </section>
+}
+@if (attendanceCorrections(); as corrections) {
+  <section class="panel">
+    <h2>Attendance correction history</h2>
+    @for (entry of corrections; track entry['id']) {
+      <p>{{ entry['created_at'] }} · {{ entry['reason'] }}</p>
+      <p>Previous {{ formatCorrection(entry['previous']) }} · Revised {{ formatCorrection(entry['revised']) }}</p>
+    } @empty { <p>No corrections recorded.</p> }
+  </section>
+}
+@if (page === 'leaves' && !id) {
+  <section class="panel">
+    <h2>Leave balance and accrual</h2>
+    <form class="attendance-fields" (submit)="$event.preventDefault(); manageLeaveBalance(balanceEmployee.value, balanceType.value, balanceDate.value, balanceCommand.value, balanceAmount.value, balanceReason.value)">
+      <label>Employee ID <input #balanceEmployee required></label>
+      <label>Leave type ID <input #balanceType required></label>
+      <label>Process through <input type="date" #balanceDate required></label>
+      <label>Action <select #balanceCommand>
+        <option value="preview">View ledger and preview accrual</option>
+        @if (can('accounts.approve_staff_leave')) {
+          <option value="apply">Post accrual</option>
+          <option value="opening">Post opening balance</option>
+          <option value="adjustment">Adjust balance</option>
+        }
+      </select></label>
+      <label>Signed adjustment amount <input #balanceAmount type="number" step="0.01"></label>
+      <label>Adjustment reason <input #balanceReason maxlength="400"></label>
+      <button mat-flat-button [disabled]="state.loading()">Run selected action</button>
+    </form>
+    @if (leaveBalance(); as data) {
+      <p>Posted balance {{ data.balance }} days</p>
+      @if (data.policy_version) {
+        <p>Applied policy entitlement {{ data.annual_entitlement }} days · Version {{ data.policy_version }}</p>
+      }
+      <h3>Entries to post</h3>
+      @for (entry of data.preview; track entry['key']) {
+        <p>{{ entry['effective_date'] }} · {{ entry['event'] }} · {{ entry['amount'] }} days</p>
+      } @empty { <p>No accrual entries to post.</p> }
+      <h3>Posted transactions</h3>
+      @for (entry of data.ledger; track entry['id']) {
+        <p>{{ entry['effective_date'] }} · {{ entry['event'] }} · {{ entry['amount'] }} days · {{ entry['reason'] }}
+          @if (entry['policy_version']) { · Policy version {{ entry['policy_version'] }} }
+        </p>
+      } @empty { <p>No posted entries.</p> }
+    }
+  </section>
+}
+@if (metrics(); as summary) {
+  <section class="metrics">
+    @for (key of ['employees','active','teachers','present','unrecorded','on_leave','pending']; track key) {
+      @if (summary[key] !== undefined) { <article class="panel metric"><h2>{{ label(key) }}</h2><strong>{{ summary[key] }}</strong></article> }
+    }
+  </section>
+  @if (summary["payroll_amount"] !== undefined) { <section class="panel"><h2>Current finalized payroll</h2><p>PKR {{ summary["payroll_amount"] }} · PKR {{ summary["payroll_due"] }} outstanding</p></section> }
+  <section class="panel"><h2>Employees by department</h2>
+    @for (row of $any(summary['departments']); track row['department__name']) {
+      <p>{{ row['department__name'] }} · {{ row['count'] }}</p>
+    } @empty { <p>No employee records.</p> }
+  </section>
+}
+@if (policyHistory(); as history) {
+  <section class="panel">
+    <h2>Policy versions · {{ history.name }}</h2>
+    @if (can('accounts.manage_hr_registry')) {
+      <button mat-stroked-button (click)="startPolicyRevision()">Schedule revision</button>
+    }
+    <ul aria-label="Leave policy version history">
+      @for (version of history.versions; track version['id']) {
+        <li>
+          <strong>{{ version['status'] }}</strong>
+          · {{ version['effective_start'] === '0001-01-01' ? 'Initial policy' : version['effective_start'] }}
+          @if (version['effective_end_exclusive']) { to before {{ version['effective_end_exclusive'] }} }
+          · {{ $any(version['terms']).annual_days }} annual days
+          · {{ $any(version['terms']).accrual_mode }}
+          · {{ $any(version['terms']).carry_limit }} carry days
+          @if (can('accounts.manage_hr_registry') && version['status'] === 'draft') {
+            <button mat-button (click)="startPolicyRevision(version)">Edit draft</button>
+          }
+          @if (can('accounts.manage_hr_registry') && version['status'] === 'scheduled') {
+            <button mat-button (click)="withdrawPolicyRevision(version)">Withdraw revision</button>
+          }
+        </li>
+      }
+    </ul>
+    @if (revising && can('accounts.manage_hr_registry')) {
+      <label>Effective date <input type="date" [(ngModel)]="revisionDate"></label>
+      <form [formGroup]="revisionForm" (ngSubmit)="savePolicyRevision(false)">
+        <div class="attendance-fields">
+          @for (field of revisionFields; track field.key) {
+            <label [attr.for]="'revision-' + field.key">{{ field.label }}
+              @if (field.options) {
+                <select [id]="'revision-' + field.key" [formControlName]="field.key">
+                  @for (option of field.options; track option) {
+                    <option [value]="option[0]">{{ option[1] }}</option>
+                  }
+                </select>
+              } @else {
+                <input [id]="'revision-' + field.key" [type]="field.type || 'text'" [formControlName]="field.key">
+              }
+            </label>
+          }
+        </div>
+        <p>Proposed entitlement {{ revisionForm.value['annual_days'] }} days from {{ revisionDate || 'the effective date' }}.</p>
+        <button mat-flat-button [disabled]="revisionForm.invalid || !revisionDate || state.loading()">Save revision</button>
+        <button mat-button type="button" (click)="savePolicyRevision(true)" [disabled]="state.loading() || !revisionDate">Save draft</button>
+      </form>
+    }
+  </section>
+}
+@if (fields.length && editable && (!id || editing)) {
+  <section class="panel">
+    <h2>{{ editing ? 'Edit record' : page === 'payroll' ? 'Payroll preview' : 'New record' }}</h2>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="attendance-fields">
+        @for (field of fields; track field.key) {
+          <label [attr.for]="field.key">{{ field.label }}
+            @if (field.lookup) {
+              <select [id]="field.key" [formControlName]="field.key"><option value="">Select</option>
+                @for (row of options(field); track row['id']) { <option [value]="row['id']">{{ name(row) }}</option> }
+              </select>
+            } @else if (field.options) {
+              <select [id]="field.key" [formControlName]="field.key">
+                @for (option of field.options; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }
+              </select>
+            } @else if (field.type === 'checkbox') {
+              <input [id]="field.key" type="checkbox" [formControlName]="field.key">
+            } @else { <input [id]="field.key" [type]="field.type || 'text'" [formControlName]="field.key"> }
+          </label>
+        }
+      </div>
+      @if (page === 'salary-structures') {
+        <h3>Allowances and deductions</h3>
+        @for (line of items(); track line; let index = $index) {
+          <div class="attendance-fields" [formGroup]="line">
+            <label>Component <input formControlName="label"></label>
+            <label>Type <select formControlName="kind"><option value="earning">Earning</option><option value="deduction">Deduction</option></select></label>
+            <label>Amount <input formControlName="amount" inputmode="decimal"></label>
+            <button mat-button type="button" (click)="deleteLine(index)">Remove</button>
+          </div>
+        }
+        <button mat-button type="button" (click)="addLine()">Add component</button>
+      }
+      <button mat-flat-button [disabled]="state.loading() || confirming || form.invalid">{{ page === 'payroll' ? 'Preview payroll' : page === 'salary-structures' ? 'Save draft' : 'Save record' }}</button>
+    </form>
+  </section>
+}
+@if (preview(); as draft) {
+  <section class="panel">
+    <h2>Payroll preview</h2>
+    @for (row of draft.entries; track row['code']) {
+      <p>{{ row['code'] }} · {{ row['name'] }} · {{ row['department'] }} · Basic {{ row['basic'] }}
+        · Gross {{ row['gross'] }} · Deductions {{ row['deductions'] }} · Net {{ row['net'] }} PKR</p>
+      <ul>
+        @for (item of $any(row['items']); track $index) {
+          <li>{{ item.label }} · {{ item.amount }} PKR
+            @if (item.overtime) {
+              <span> · {{ item.hours }} h × {{ item.rate }} × {{ item.multiplier }} · Approval {{ item.overtime }}</span>
+            }
+          </li>
+        }
+      </ul>
+    } @empty { <p>No eligible payroll obligations.</p> }
+    @for (row of draft.warnings; track row['employee']) { <p>{{ row['employee'] }} · {{ row['reason'] }}</p> }
+    <button mat-flat-button (click)="generate()" [disabled]="!draft.entries.length || state.loading()">Generate draft payroll</button>
+  </section>
+}
+@if (page === 'salary-structures' && auth.has('accounts.view_salary_structure_approvals')) {
+  <section class="panel">
+    <h2>Salary structure approvals</h2>
+    <button mat-stroked-button (click)="showPendingSalary()" [disabled]="state.loading()">View pending approvals</button>
+    @if (pendingSalary(); as pending) {
+      <ul aria-label="Pending salary structure approvals">
+        @for (approval of pending.results; track approval['id']) {
+          @let snapshot = $any(approval['snapshot']);
+          <li>
+            {{ snapshot.name }} · revision {{ approval['revision'] }} · {{ approval['submitter'] }}
+            · {{ approval['created_at'] }} · {{ snapshot.effective_from || 'No start date' }} · pending
+            <button mat-button (click)="showSalaryApprovals('' + approval['structure'], snapshot.name)">Review revision</button>
+          </li>
+        } @empty { <li>No pending salary structure approvals.</li> }
+      </ul>
+      @if (pending.previous) {
+        <button mat-button (click)="showPendingSalary(pending.previous)">Previous approvals</button>
+      }
+      @if (pending.next) {
+        <button mat-button (click)="showPendingSalary(pending.next)">More approvals</button>
+      }
+    }
+  </section>
+  @if (salaryHistory(); as history) {
+    <section class="panel">
+      <h2>Approval history · {{ history.name }}</h2>
+      @for (approval of history.approvals; track approval['id']; let first = $first) {
+        @let snapshot = $any(approval['snapshot']);
+        <article>
+          <h3>Revision {{ approval['revision'] }} · {{ approval['decision'] }}</h3>
+          <p>Submitted by {{ approval['submitter'] }} · {{ approval['created_at'] }}</p>
+          <p>Effective {{ snapshot.effective_from || 'from assignment start' }} through {{ snapshot.effective_through || 'assignment end' }}</p>
+          <p>Basic {{ snapshot.basic }} · {{ snapshot.basis }}</p>
+          <ul aria-label="Reviewed salary components">
+            @for (component of snapshot.components; track $index) {
+              <li>{{ component.label }} · {{ component.kind }} · {{ component.amount }}</li>
+            } @empty { <li>No additional components.</li> }
+          </ul>
+          @if (approval['reviewer']) {
+            <p>Reviewed by {{ approval['reviewer'] }} · {{ approval['reviewed_at'] }} · {{ approval['reason'] }}</p>
+          }
+          @if (approval['activator']) {
+            <p>Activated by {{ approval['activator'] }} · {{ approval['activated_at'] }}</p>
+          }
+          @if (first && currentSalaryRevision(history.structure) === approval['revision'] &&
+            approval['decision'] === 'pending' && can('accounts.approve_salary_structure')) {
+            <label>Rejection reason <input [(ngModel)]="salaryDecisionReason" maxlength="400"></label>
+            <button mat-button [disabled]="state.loading() || confirming"
+              (click)="decideSalary(history.structure,'approve',approval['id'],snapshot)">Approve revision</button>
+            <button mat-button [disabled]="state.loading() || confirming || !salaryDecisionReason.trim()"
+              (click)="decideSalary(history.structure,'reject',approval['id'],snapshot)">Reject revision</button>
+          }
+        </article>
+      } @empty { <p>No recorded approvals.</p> }
+    </section>
+  }
+}
+@if (!id && page !== 'overview' && page !== 'settings') {
+  <section class="panel">
+    <div class="attendance-fields">
+      @if (page === 'reports') {
+        <label>Report <select [(ngModel)]="report">
+          @for (kind of reportNames; track kind) { <option [value]="kind">{{ label(kind) }}</option> }
+        </select></label>
+        <label>From date <input type="date" [(ngModel)]="reportFilters['from_date']"></label>
+        <label>Through date <input type="date" [(ngModel)]="reportFilters['to_date']"></label>
+        <label>Department <select [(ngModel)]="reportFilters['department']"><option value="">All</option>
+          @for (item of (lookups()['departments'] ?? []); track item['id']) {
+            <option [value]="item['id']">{{ name(item) }}</option>
+          }
+        </select></label>
+        @if (['employees','joining-exits','attendance','monthly-attendance','leaves'].includes(report)) {
+          <label>Status <input [(ngModel)]="reportFilters['status']"></label>
+        }
+        @if (canExportReport()) {
+          <a [href]="reportLink()">CSV export</a>
+          <a [href]="reportLink(true)" target="_blank" rel="noopener">Print</a>
+        }
+      } @else { <label>Search <input [(ngModel)]="search" (keyup.enter)="reload()"></label> }
+      <button type="button" mat-stroked-button (click)="reload()" [disabled]="state.loading()">Apply</button>
+    </div>
+    @if ((page === 'leaves' && can('accounts.approve_staff_leave')) ||
+      (page === 'attendance' && can('accounts.correct_staff_attendance')) ||
+      (page === 'salary-payments' && can('accounts.correct_payroll'))) {
+      <div class="attendance-fields">
+        <label>Decision or correction reason <input [(ngModel)]="reason" maxlength="400"></label>
+        @if (page === 'attendance') {
+          <label>Corrected status <select [(ngModel)]="correctedStatus">
+            @for (status of ['present','absent','late','leave','holiday','excused']; track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select></label>
+        }
+      </div>
+    }
+    @if (rows()[0]; as first) {
+      <div class="attendance-table" tabindex="0" role="region" aria-label="HR records">
+        <table><thead><tr>
+          @for (key of columns(first); track key) { <th scope="col">{{ label(key) }}</th> }
+          
+          <th scope="col">Actions</th>
+        </tr></thead><tbody>
+          @for (row of rows(); track $index) {
+            <tr>
+              @for (key of columns(first); track key) { <td>{{ format(row[key]) }}</td> }
+              <td>
+                @if (page === 'employees' || page === 'teachers') { <a [routerLink]="['/hr/employees', row['id']]">Profile</a> }
+                @if (page === 'payroll') { <a [routerLink]="['/hr/payroll', row['id']]">Open payroll</a> }
+                @if (page === "payslips" && auth.has("accounts.print_payslip")) {
+                  <a [href]="'/api/v1/hr/payslips/' + row['id'] + '/'" target="_blank" rel="noopener">Print payslip</a>
+                }
+                @if ((['departments','designations','leave-types'].includes(page) ||
+                    (page === 'salary-structures' && !row['active'])) && editable) {
+                  <button mat-button (click)="edit(row)">Edit</button>
+                }
+                @if (page === 'salary-structures') {
+                  @if (auth.has('accounts.view_salary_structure_approvals')) {
+                    <button mat-button (click)="showSalaryApprovals('' + row['id'], '' + row['name'])">View approval history</button>
+                  }
+                  @if (row['status'] === 'draft' && can('accounts.submit_salary_structure')) {
+                    <button mat-button [disabled]="state.loading() || confirming"
+                      (click)="decideSalary('' + row['id'],'submit')">Submit for approval</button>
+                  }
+                  @if (row['status'] === 'approved' && can('accounts.activate_salary_structure')) {
+                    <button mat-button [disabled]="state.loading() || confirming"
+                      (click)="decideSalary('' + row['id'],'activate',$any(row['current_approval']).id)">Activate approved structure</button>
+                  }
+                }
+                @if (page === 'leave-types') {
+                  <button mat-button (click)="showPolicyVersions(row)">Policy versions</button>
+                }
+                @if (page === 'overtime' && row['status'] === 'pending' && can('accounts.approve_payroll')) {
+                  <label>Approved hours <input #hours type="number" min="0.01" step="0.01"></label>
+                  <label>Overtime decision reason <input #decisionReason maxlength="400"></label>
+                  <button mat-button (click)="move(row,'decision',{status:'approved',hours:hours.value,reason:decisionReason.value})">Approve</button>
+                  <button mat-button (click)="move(row,'decision',{status:'rejected',reason:decisionReason.value})">Reject</button>
+                }
+                @if (page === 'leaves' && can('accounts.approve_staff_leave') && row['status'] === 'pending') {
+                  <button mat-button (click)="move(row,'approve')">Approve</button>
+                }
+                @if (page === 'attendance') {
+                  <button mat-button (click)="showAttendanceCorrections('' + row['id'])">Correction history</button>
+                }
+                @if (page === 'documents/due') {
+                  @if (auth.has('accounts.view_staff')) {
+                    <a [routerLink]="['/hr/employees', row['employee']]">Employee documents</a>
+                  }
+                  @if (auth.has('accounts.view_employee_documents')) {
+                    <a [href]="'/api/v1/hr/documents/' + row['id'] + '/download/'">Download due document</a>
+                  }
+                }
+                @if (page === 'attendance' && can('accounts.correct_staff_attendance')) {
+                  <button mat-button [disabled]="!reason.trim() || state.loading()" (click)="move(row,'correct',{reason,status:correctedStatus})">Correct attendance</button>
+                }
+                @if (page === 'leaves' && can('accounts.approve_staff_leave')) {
+                  @if (row['status'] === 'pending') {
+                    <button mat-button [disabled]="!reason.trim() || state.loading()" (click)="move(row,'reject',{reason})">Reject</button>
+                  }
+                  @if (['pending','approved'].includes($any(row['status']))) {
+                    <button mat-button [disabled]="state.loading()" (click)="move(row,'cancel',{reason})">Cancel leave</button>
+                  }
+                }
+                @if (page === 'salary-payments' && can('accounts.correct_payroll')) {
+                  <button mat-button [disabled]="!reason.trim() || state.loading()" (click)="move(row,'reverse',{reason})">Reverse payment</button>
+                }
+                @if (page === 'advances' && can('accounts.approve_salary_advance') && !row['approved_by']) {
+                  <button mat-button (click)="move(row,'approve')">Approve</button>
+                }
+                @if (page === 'advances' && can('accounts.pay_salary') && row['approved_by'] && !row['disbursed_at']) {
+                  <button mat-button (click)="move(row,'disburse')">Record disbursement</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody></table>
+      </div>
+      <div class="attendance-links">
+        <button mat-button [disabled]="!offset || state.loading()" (click)="reload(offset-25)">Previous</button>
+        <span>{{ offset + 1 }}–{{ offset + rows().length }} of {{ count }}</span>
+        <button mat-button [disabled]="offset + 25 >= count || state.loading()" (click)="reload(offset+25)">Next</button>
+      </div>
+    } @else if (!state.loading()) { <p>No records match the selection.</p> }
+  </section>
+}
+@if (details(); as row) {
+  @if (page === 'employees') {
+    <section class="panel">
+      <h2>{{ name(row) }}</h2>
+      <p>{{ row['employment_type'] }} · {{ row['status'] }} · Joined {{ row['joined_on'] }}</p>
+      @if (can('accounts.change_employee')) { <button mat-button (click)="edit(row)">Edit employee</button> }
+    </section>
+    <section class="panel">
+      <h2>Position history</h2>
+      @for (item of history(); track item['id']) {
+        <p>{{ item['effective'] }} · {{ $any(item['details']).department }} · {{ $any(item['details']).designation }}
+          · {{ $any(item['details']).status }}</p>
+      } @empty { <p>No position changes recorded.</p> }
+    </section>
+  }
+    @if (auth.has('accounts.view_teachers')) {
+      <section class="panel"><h2>Academic assignments</h2>
+        @if (row['user'] && can('accounts.manage_teaching_assignments')) {
+          <form class="attendance-fields" [formGroup]="teachingForm" (ngSubmit)="assignTeacher()">
+            @for (field of assignmentFields; track field.key) {
+              <label [attr.for]="'teacher-' + field.key">{{ field.label }}
+                @if (field.type === 'date') {
+                  <input type="date" [id]="'teacher-' + field.key" [formControlName]="field.key">
+                } @else {
+                <select [id]="'teacher-' + field.key" [formControlName]="field.key"><option value="">Select</option>
+                  @for (option of options(field); track option['id']) {
+                    <option [value]="option['id']">{{ name(option) }}</option>
+                  }
+                </select>
+                }
+              </label>
+            }
+            <button mat-flat-button [disabled]="teachingForm.invalid || state.loading()">Assign teacher</button>
+          </form>
+        }
+        @for (item of assignments(); track item['id']) {
+          <p>{{ item['session_name'] }} · {{ item['class_name'] }} {{ item['section_name'] }} ·
+            {{ item['subject_name'] || 'Daily class assignment' }} · {{ item['effective_status'] }} · {{ item['effective_start'] || 'Open start' }} to {{ item['effective_end'] || 'Open end' }}</p>
+          @if (item['active'] && can('accounts.manage_teaching_assignments')) {
+            <form class="attendance-fields" (submit)="$event.preventDefault(); updateAssignmentDates(item['id'], dateFrom.value, dateThrough.value)">
+              <label>Effective from <input type="date" #dateFrom [value]="item['effective_start'] || ''"></label>
+              <label>Effective through <input type="date" #dateThrough [value]="item['effective_end'] || ''"></label>
+              <button mat-button [disabled]="state.loading()">Save dates</button>
+              <button mat-button type="button" [disabled]="state.loading()" (click)="deactivateTeaching(item)">Deactivate assignment</button>
+            </form>
+          }
+          @if (auth.has('accounts.manage_teaching_assignments')) {
+            <button mat-button (click)="showAssignmentHistory('' + item['id'])">Assignment history</button>
+            @if (assignmentHistory()['' + item['id']]; as events) {
+              <ul aria-label="Assignment history">
+                @for (event of events; track event['id']) {
+                  <li>{{ label(('' + event['action']).toLowerCase()) }} · {{ event['timestamp'] }}
+                    · {{ event['acting_user__username'] || 'System' }}
+                    @if ($any(event['sanitized_metadata'])?.before; as previous) {
+                      <span> · {{ previous.effective_start || 'Open start' }} to {{ previous.effective_end || 'Open end' }}
+                        → {{ $any(event['sanitized_metadata']).after.effective_start || 'Open start' }} to
+                        {{ $any(event['sanitized_metadata']).after.effective_end || 'Open end' }}</span>
+                    }
+                  </li>
+                } @empty { <li>No history recorded.</li> }
+              </ul>
+            }
+          }
+        } @empty { <p>No teaching assignments.</p> }
+        @if (auth.has('accounts.manage_teaching_assignments')) {
+          <a routerLink="/attendance/settings">Manage teaching scope</a>
+        }
+      </section>
+    }
+    @if (auth.has('accounts.view_employee_documents')) {
+      <section class="panel"><h2>Private employee documents</h2>
+        @if (can('accounts.manage_employee_documents')) {
+          <div class="attendance-fields">
+            <label>Label <input [(ngModel)]="documentLabel"></label>
+            <label>Document category <input [(ngModel)]="documentKind" placeholder="employment-contract"></label>
+            <label>Document scan <input type="file" accept="image/png,image/jpeg,image/webp"
+              (change)="documentFile = $any($event.target).files[0] || null"></label>
+            <button mat-flat-button (click)="uploadDocument()" [disabled]="state.loading() || !documentFile">Upload</button>
+          </div>
+        }
+        @for (item of documents(); track item['id']) {
+          <p>{{ item['label'] }} · {{ item['kind'] }} @if (item['archived_at']) { · Archived }
+            <a [href]="'/api/v1/hr/documents/' + item['id'] + '/download/'">Download</a>
+            @if (item['review_on']) { <span> · Review {{ item['review_on'] }}</span> }
+            @if (item['retention_hold']) { <span> · On hold</span> }
+            @if (!item['archived_at'] && !item['retention_hold'] && can('accounts.manage_employee_documents')) {
+              <button mat-button (click)="archiveDocument(item['id'])">Archive</button>
+            }
+            <button mat-button (click)="showRetentionReviews('' + item['id'])">Review history</button>
+          </p>
+          @if (!item['archived_at'] && can('accounts.manage_employee_documents')) {
+            <form class="attendance-fields"
+              (submit)="$event.preventDefault(); reviewDocument('' + item['id'], retentionOperation.value, retentionReason.value, retentionDate.value)">
+              <label>Retention decision
+                <select #retentionOperation>
+                  <option value="extend">Extend review date</option>
+                  <option [value]="item['retention_hold'] ? 'release' : 'hold'">{{ item['retention_hold'] ? 'Release hold' : 'Place hold' }}</option>
+                </select>
+              </label>
+              <label>New review date for extension <input #retentionDate type="date"></label>
+              <label>Reason <input #retentionReason required maxlength="400"></label>
+              <button mat-button [disabled]="state.loading()">Record decision</button>
+            </form>
+          }
+          @if (retentionReviews()['' + item['id']]; as reviews) {
+            @for (review of reviews; track review['id']) {
+              <p>{{ review['operation'] }} · {{ review['created_at'] }} · {{ review['reason'] }}</p>
+            } @empty { <p>No retention decisions recorded.</p> }
+          }
+        } @empty { <p>No employee documents.</p> }
+      </section>
+    }
+    @if (auth.has('accounts.view_payroll')) {
+      <section class="panel"><h2>Salary history</h2>
+        @for (item of employeePayroll(); track item['id']) {
+          <p>{{ item['period'] }} · Net {{ item['net'] }} PKR · Outstanding {{ item['outstanding'] }} PKR
+            @if (auth.has('accounts.print_payslip')) {
+              <a [href]="'/api/v1/hr/payslips/' + item['id'] + '/'" target="_blank" rel="noopener">Print payslip</a>
+            }
+          </p>
+        } @empty { <p>No finalized payroll for this employee.</p> }
+      </section>
+    }
+  @if (page === 'payroll') {
+    <section class="panel">
+      <h2>Payroll status</h2><p>{{ row['status'] }}</p>
+      <div class="attendance-links">
+        @if (row['status'] === 'draft' && can('accounts.submit_payroll')) { <button mat-flat-button [disabled]="state.loading()" (click)="move(row,'submit')">Submit payroll</button> }
+        @if (row["status"] === "draft" && can("accounts.generate_payroll")) { <button mat-button [disabled]="state.loading()" (click)="move(row, 'recalculate')">Recalculate draft</button> }
+        @if (row['status'] === 'submitted' && can('accounts.review_payroll')) { <button mat-flat-button [disabled]="state.loading()" (click)="move(row,'review')">Review payroll</button> }
+        @if (row['status'] === 'reviewed' && can('accounts.approve_payroll')) { <button mat-flat-button [disabled]="state.loading()" (click)="move(row,'approve')">Approve payroll</button> }
+        @if (row['status'] === 'approved' && can('accounts.finalize_payroll')) { <button mat-flat-button [disabled]="state.loading()" (click)="move(row,'finalize')">Finalize payroll</button> }
+        @if (['submitted','reviewed','approved'].includes($any(row['status'])) && can('accounts.review_payroll')) {
+          <label>Return reason <input [(ngModel)]="reason"></label>
+          <button mat-button [disabled]="!reason.trim()" (click)="move(row,'return',{reason})">Return to draft</button>
+        }
+      </div>
+      <div class="attendance-rows">
+        @for (item of entries(row); track item['id']) {
+          <article>
+            <h3>{{ item['name'] }}</h3>
+            <p>Gross {{ item['gross'] }} PKR · Net {{ item['net'] }} PKR · Outstanding {{ item['outstanding'] }} PKR</p>
+            @for (line of $any(item['items']); track $index) { <p>{{ line.label }} · {{ line.kind }} · {{ line.amount }} PKR</p> }
+            @if (row['status'] === 'finalized') {
+              @if (can('accounts.pay_salary')) {
+                <a routerLink="/hr/salary-payments" [queryParams]="{entry:item['id']}">Record payment</a>
+              }
+              @if (auth.has('accounts.print_payslip')) {
+                <a [href]="'/api/v1/hr/payslips/' + item['id'] + '/'" target="_blank" rel="noopener">Print payslip</a>
+              }
+            }
+          </article>
+        }
+      </div>
+      <h3>Approval history</h3>
+      @for (decision of $any(row['decisions']); track decision.id) {
+        <p>{{ decision.created_at }} · {{ decision.status }} · {{ decision.reason }}</p>
+      }
+    </section>
+  }
+}

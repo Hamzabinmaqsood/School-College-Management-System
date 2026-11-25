@@ -1,0 +1,348 @@
+<header class="tt-header">
+  <div><h1>Timetable</h1><p>{{ admin() ? 'Class schedules, teaching assignments and rooms' : 'My published teaching schedule' }}</p></div>
+  @if (tab === 'schedule' && schedule()) {
+    <p class="tt-print-context">{{ auth.user()?.institution?.name }} · Published schedule from {{ schedule()?.from }}</p>
+    <div class="tt-actions">
+      <button mat-stroked-button (click)="print()">Print schedule</button>
+      @if (auth.has('accounts.export_timetable')) { <a mat-button [href]="exportUrl()">Download CSV</a> }
+    </div>
+  }
+</header>
+@if (admin()) {
+  <nav class="tt-tabs" aria-label="Timetable workspace">
+    @for (item of tabs; track item[0]) {
+      <button mat-button [attr.aria-current]="tab === item[0] ? 'page' : null" (click)="setTab(item[0]!)">{{ item[1] }}</button>
+    }
+  </nav>
+}
+@if (state.loading()) { <p role="status" class="no-print">Loading timetable…</p> }
+@if (state.error()) { <p role="alert" class="tt-error no-print">{{ state.error() }}</p> }
+@if (state.success()) { <p role="status" class="tt-success no-print">{{ state.success() }}</p> }
+
+@if (tab === 'schedule') {
+  <section class="panel no-print">
+    <h2>Schedule filters</h2>
+    <form class="tt-fields" (submit)="$event.preventDefault(); refreshSchedule()">
+      <label>Starting date<input type="date" name="schedule-date" [(ngModel)]="date" required></label>
+      @if (admin()) {
+        <label>Class and section<select name="schedule-section" [(ngModel)]="section"><option value="">All sections</option>
+          @for (item of options('sections'); track item['id']) { <option [value]="item['id']">{{ label('sections',item['id']) }}</option> }
+        </select></label>
+        <label>Teacher<select name="schedule-teacher" [(ngModel)]="teacher"><option value="">All teachers</option>
+          @for (item of options('teachers'); track item['id']) { <option [value]="item['id']">{{ item['name'] }}</option> }
+        </select></label>
+        <label>Room<select name="schedule-room" [(ngModel)]="room"><option value="">All rooms</option>
+          @for (item of options('rooms'); track item['id']) { <option [value]="item['id']">{{ item['name'] }}</option> }
+        </select></label>
+      }
+      <label class="tt-checkbox"><input type="checkbox" name="schedule-weekly" [(ngModel)]="weekly"> Show seven days</label>
+      <button mat-flat-button [disabled]="state.loading()">Show schedule</button>
+    </form>
+  </section>
+  @if (schedule(); as data) {
+    <div class="tt-week" aria-label="Published lessons">
+      @for (date of dates(); track date) {
+        <section class="panel tt-day"><h2>{{ date }}</h2>
+          @for (lesson of lessons(date); track lesson.entry + lesson.period) {
+            <article class="tt-lesson">
+              <small>{{ lesson.period }} · {{ lesson.starts_at.slice(0,5) }}–{{ lesson.ends_at.slice(0,5) }}</small>
+              <strong>{{ lesson.subject_name }}</strong>
+              <small class="tt-print-context">{{ lesson.session_name }} · Published revision {{ lesson.revision }}</small>
+              <span>{{ lesson.class_name }} · {{ lesson.section_name }}{{ lesson.group_name ? ' · ' + lesson.group_name : '' }}</span>
+              <span>{{ lesson.teacher_name }}{{ lesson.room_name ? ' · ' + lesson.room_name : '' }}</span>
+              @if (lesson.change) { <p class="tt-warning">{{ lesson.change.replaceAll('_',' ') }}{{ lesson.destination_date ? ' · ' + lesson.destination_date : '' }}</p> }
+              @if (lesson.warning) { <p class="tt-warning">{{ lesson.warning.replaceAll('_',' ') }}</p> }
+              @if (auth.has('attendance.view_attendancesession') && !inactive(lesson)) {
+                <a class="no-print" routerLink="/attendance" [queryParams]="{date:lesson.date,period:lesson.period,session:lesson.session,
+                  academic_class:lesson.academic_class,section:lesson.section,subject:lesson.subject}">Open attendance</a>
+              }
+              @if (lesson.attendance !== undefined && !inactive(lesson)) {
+                <p>Attendance · {{ lesson.attendance || 'pending' }}</p>
+              }
+            </article>
+          }
+        </section>
+      } @empty {
+        <section class="panel"><p>No published lessons match this date and filters.</p></section>
+      }
+    </div>
+    @if (data.workload.length) {
+      <section class="panel"><h2>Teaching workload</h2>
+        @for (item of data.workload; track item.teacher_name) {
+          <p>{{ item.teacher_name }} · {{ item.lessons }} lessons · {{ item.minutes }} teaching minutes</p>
+        }
+        @if (data.attendance.expected) {
+          <h3>Attendance completeness</h3>
+          <p>{{ data.attendance.finalized }} finalized · {{ data.attendance.draft }} draft
+            · {{ data.attendance.missing }} missing of {{ data.attendance.expected }} expected registers</p>
+        }
+      </section>
+    }
+    @if (data.rooms.length) {
+      <section class="panel"><h2>Room usage</h2>
+        @for (item of data.rooms; track item.room_name) {
+          <p>{{ item.room_name }} · {{ item.lessons }} lessons · {{ item.minutes }} scheduled minutes</p>
+        }
+      </section>
+    }
+    @if (data.examinations.length) {
+      <section class="panel"><h2>Examinations</h2>
+        @for (item of data.examinations; track $index) {
+          <p>{{ item.date }} · {{ item.starts_at }}–{{ item.ends_at }} · {{ item.name }} · {{ item.subject }} · {{ item.room }}</p>
+        }
+      </section>
+    }
+  }
+}
+@if (tab === 'settings') {
+  <section class="panel"><h2>Timetable configuration</h2>
+    @for (item of configuration; track item[0]) {
+      <div class="tt-record"><h3>{{ item[1] }}</h3>
+        @if (can('change_timetable_settings')) {
+          <button mat-stroked-button (click)="open(item[0]!)">{{ item[0] === 'settings' ? 'Edit settings' : 'Add ' + item[1] }}</button>
+        }
+        @for (row of options(item[0]!); track row['id']) {
+          <div class="tt-row">
+            <span>{{ item[0] === 'periods' ? label('periods', row['id']) : row['name'] || label('teachers', row['teacher']) }} {{ row['code'] }} {{ row['starts_at'] }} {{ row['ends_at'] }} @if (row['predecessor']) { · Successor roster }</span>
+            @if (can('change_timetable_settings')) { <button mat-button (click)="open(item[0]!,row)">Edit</button> }
+          </div>
+        }
+      </div>
+    }
+  </section>
+}
+@if (tab === 'plans') {
+  <section class="panel"><h2>Class and section plans</h2>
+    @if (can('manage_timetable')) { <button mat-flat-button [disabled]="state.loading()" (click)="open('plans')">Create draft timetable</button> }
+    <ul class="tt-plan-list">
+      @for (plan of options('plans'); track plan['id']) {
+        <li><button mat-button [disabled]="state.loading()" (click)="pickPlan(plan)">{{ label('sections',plan['section']) }} · {{ label('sessions',plan['session']) }}</button></li>
+      }
+    </ul>
+    @if (currentPlan) {
+      <div class="tt-fields">
+        <label>Version<select [disabled]="state.loading()" [ngModel]="currentVersion" (ngModelChange)="chooseVersion($event)">
+          @for (row of versions(); track row['id']) {
+            <option [value]="row['id']">Version {{ row['number'] }} · {{ row['status'] }} · {{ row['effective_start'] }}</option>
+          }
+        </select></label>
+        @if (can('manage_timetable') && activeVersion()?.['status'] === 'published') {
+          <button mat-button (click)="open('new-version')">Copy to new draft</button>
+        }
+      </div>
+      @if (activeVersion(); as version) {
+        <p>Effective {{ version['effective_start'] }} to {{ version['effective_end'] }}
+          @if (version['superseded_on']) { · Replaced from {{ version['superseded_on'] }} }</p>
+        <div class="tt-actions">
+          @if (version['status'] === 'draft') {
+            @if (can('manage_timetable')) { <button mat-flat-button [disabled]="state.loading()" (click)="open('entries')">Add lesson</button> }
+            @if (can('submit_timetable')) { <button mat-button [disabled]="state.loading()" (click)="transition('submit')">Submit for review</button> }
+          }
+          @if (version['status'] === 'review' && can('approve_timetable')) {
+            <label>Return reason<input [(ngModel)]="reviewReason" maxlength="400"></label>
+            <button mat-button [disabled]="state.loading() || !reviewReason.trim()" (click)="transition('reject')">Return to draft</button>
+            <button mat-flat-button [disabled]="state.loading()" (click)="transition('approve')">Approve version</button>
+          }
+          @if (version['status'] === 'approved' && can('publish_timetable')) {
+            <button mat-flat-button [disabled]="state.loading()" (click)="transition('publish')">Publish version</button>
+          }
+        </div>
+        @if (allocation().length) {
+          <h3>Weekly subject allocation</h3>
+          @for (item of allocation(); track item['subject']) {
+            <p>{{ item['subject_name'] }} · {{ item['allocated'] }} scheduled
+              · {{ item['minimum'] }}–{{ item['maximum'] }} required</p>
+          }
+        }
+        <div class="tt-week">
+          @for (weekday of [0,1,2,3,4,5,6]; track weekday) {
+            @if (draftLessons(weekday).length) {
+              <section class="tt-day"><h3>{{ weekdays[weekday] }}</h3>
+                @for (row of draftLessons(weekday); track row['id']) {
+                  <article class="tt-lesson">
+                    <strong>{{ label('subjects',row['subject']) }}</strong><span>{{ label('periods',row['period']) }}</span>
+                    <span>{{ label('teachers',row['teacher']) }} · {{ label('rooms',row['room']) }}</span>
+                    @if (version['status'] === 'draft' && can('manage_timetable')) {
+                      <div class="tt-actions"><button mat-button (click)="open('entries',row)">Edit lesson</button>
+                        <button mat-button (click)="remove(row)">Remove lesson</button>
+                        @if (canCreateRosterSuccessor(row)) {
+                          <button mat-button (click)="createRosterSuccessor(row)">Create successor roster</button>
+                        }
+                      </div>
+                    }
+                  </article>
+                }
+              </section>
+            }
+          }
+        </div>
+      }
+    }
+  </section>
+}
+@if (tab === 'exceptions') {
+  <section class="panel">
+    <h2>Daily changes and substitutions</h2>
+    <div class="tt-fields">
+      <label>Lesson date<input type="date" [(ngModel)]="date"></label>
+      <button mat-button (click)="refreshSchedule()">Find published lessons</button>
+      @if (can('change_timetable_exceptions')) {
+        <button mat-flat-button (click)="open('exceptions')">Record daily change</button>
+      }
+    </div>
+    @for (row of options('exceptions'); track row['id']) {
+      <p>{{ row['date'] }} · {{ row['kind'] }} · {{ row['reason'] }}</p>
+    }
+  </section>
+}
+@if (tab === 'reports') {
+  <section class="panel" [class.no-print]="!!reportPrint()">
+    <h2>Timetable reports</h2>
+    <div class="tt-fields no-print">
+      <label>Report<select [(ngModel)]="report">
+        @for (item of reports; track item) { <option [value]="item">{{ item.replaceAll('-', ' ') }}</option> }
+      </select></label>
+      <label>From date<input type="date" [(ngModel)]="date"></label>
+      <label>Through date<input type="date" [(ngModel)]="reportThrough"></label>
+      <label>Report section<select [(ngModel)]="section"><option value="">All sections</option>
+        @for (item of options('sections'); track item['id']) {
+          <option [value]="item['id']">{{ label('sections',item['id']) }}</option>
+        }
+      </select></label>
+      <label>Report session<select [(ngModel)]="reportSession"><option value="">All</option>
+        @for (item of options('sessions'); track item['id']) {
+          <option [value]="item['id']">{{ item['name'] }}</option>
+        }
+      </select></label>
+      <label>Report class<select [(ngModel)]="reportClass"><option value="">All</option>
+        @for (item of options('classes'); track item['id']) {
+          <option [value]="item['id']">{{ item['name'] }}</option>
+        }
+      </select></label>
+      <label>Report subject<select [(ngModel)]="reportSubject"><option value="">All</option>
+        @for (item of options('subjects'); track item['id']) {
+          <option [value]="item['id']">{{ item['name'] }}</option>
+        }
+      </select></label>
+      <label>Report group<select [(ngModel)]="reportGroup"><option value="">All</option>
+        @for (item of options('teaching-groups'); track item['id']) {
+          <option [value]="item['id']">{{ item['name'] }}</option>
+        }
+      </select></label>
+      <label>Report teacher<select [(ngModel)]="teacher"><option value="">All</option>
+        @for (item of options('teachers'); track item['id']) {
+          <option [value]="item['id']">{{ item['name'] }}</option>
+        }
+      </select></label>
+      <label>Report room<select [(ngModel)]="room"><option value="">All</option>
+        @for (item of options('rooms'); track item['id']) {
+          <option [value]="item['id']">{{ item['name'] }}</option>
+        }
+      </select></label>
+      <label>Report status<select [(ngModel)]="reportStatus"><option value="">All states</option>
+        <option value="draft">Draft</option><option value="review">In review</option>
+        <option value="approved">Approved</option><option value="published">Published</option>
+      </select></label>
+    </div>
+    <div class="tt-actions no-print">
+      <button mat-flat-button (click)="runReport()" [disabled]="state.loading()">Run report</button>
+      <button mat-button (click)="printReport()" [disabled]="state.loading()">Print report</button>
+      @if (auth.has('accounts.export_timetable')) { <a mat-button [href]="reportExport()">Export report CSV</a> }
+    </div>
+    @if (reportData(); as data) {
+      <p>{{ data.count }} records</p>
+      <div class="tt-actions no-print">
+        <button mat-button [disabled]="!data.previous" (click)="runReport(reportOffset - 25)">Previous report page</button>
+        <button mat-button [disabled]="!data.next" (click)="runReport(reportOffset + 25)">Next report page</button>
+      </div>
+      @for (row of data.results; track $index) {
+        <article class="tt-lesson">
+          @for (field of reportColumns(row); track field) {
+            <span><strong>{{ field.replaceAll('_',' ') }}</strong> · {{ row[field] ?? '—' }}</span>
+          }
+        </article>
+      }
+    }
+  </section>
+  @if (reportPrint(); as printed) {
+    <section class="tt-print-context" aria-label="Printable report">
+      <h2>{{ printed.title }}</h2>
+      <p>{{ auth.user()?.institution?.name }} · {{ printed.from }}{{ printed.through ? ' to ' + printed.through : '' }}</p>
+      @if (printed.scope.length) { <p>{{ printed.scope.join(' · ') }}</p> }
+      <p>{{ printed.rows.length }} records</p>
+      @for (row of printed.rows; track $index) {
+        <article class="tt-lesson">
+          @for (field of reportColumns(row); track field) {
+            @if (row[field] !== null && !field.endsWith('_version')) {
+              <span><strong>{{ field.replaceAll('_',' ') }}</strong> · {{ row[field] }}</span>
+            }
+          }
+        </article>
+      }
+    </section>
+  }
+
+}
+@if (action) {
+  <section class="panel" aria-label="Timetable editor">
+    <h2>{{ editorTitle() }}</h2>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="tt-fields">
+        @for (field of fields; track field.key) {
+          <label [attr.for]="'tt-' + field.key" [class.tt-checkbox]="field.type === 'checkbox'">
+            {{ field.label }}
+            @if (field.lookup) {
+              <select [id]="'tt-' + field.key" [formControlName]="field.key" (change)="editorSelectionChanged(field.key)"><option value="">Select</option>
+                @for (row of editorOptions(field.lookup); track row['id']) {
+                  <option [value]="row['id']">{{ field.lookup === 'daily' ? row['name'] : label(field.lookup,row['id']) }}</option>
+                }
+              </select>
+            } @else if (field.options) {
+              <select [id]="'tt-' + field.key" [formControlName]="field.key" (change)="editorSelectionChanged(field.key)">
+              @for (option of field.options; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }
+              </select>
+            } @else if (field.type === 'checkbox') {
+              <input type="checkbox" [id]="'tt-' + field.key" [formControlName]="field.key">
+            } @else {
+              <input [id]="'tt-' + field.key" [type]="field.type || 'text'" [formControlName]="field.key">
+            }
+          </label>
+        }
+      </div>
+      @if (action === 'entries') {
+        @if (lessonOptionsLoading()) { <p role="status">Checking lesson eligibility…</p> }
+        @else if (lessonOptionsError()) {
+          <p role="alert">Lesson choices could not be loaded.</p>
+          <button mat-button type="button" (click)="refreshLessonOptions()">Retry lesson choices</button>
+        }
+        @else if (!lessonOptions().subjects.length) { <p>No active curriculum subjects are available for this draft.</p> }
+        @else if (form.controls['subject']?.value && !lessonOptions().teachers.length) {
+          <p>No eligible teachers cover the selected subject and lesson dates.</p>
+        }
+      }
+      @if (action === 'teaching-groups' && auth.has('accounts.view_students')) {
+        <label class="tt-member-list">Group members
+          <select multiple [(ngModel)]="selectedMembers" [ngModelOptions]="{standalone:true}">
+            @for (member of options('group-members'); track member['id']) {
+              <option [value]="member['id']">{{ member['name'] }}</option>
+            }
+          </select>
+        </label>
+      }
+      @for (warning of previewWarnings(); track warning) { <p class="tt-warning">{{ warning }}</p> }
+      <div class="tt-actions">
+        <button mat-flat-button [disabled]="form.invalid || state.loading() || lessonEditorBlocked()">Save timetable change</button>
+        @if (action === 'entries' && !editing) {
+          <button mat-stroked-button type="button" [disabled]="form.invalid || state.loading() || lessonEditorBlocked()" (click)="validate()">Check conflicts</button>
+          <button mat-button type="button" [disabled]="state.loading() || !form.controls['subject']?.value || !form.controls['teacher']?.value" (click)="findSlots()">Find available slots</button>
+        }
+        <button mat-button type="button" (click)="action = ''">Cancel</button>
+      </div>
+    </form>
+    @for (slot of suggestions(); track slot['period'] + ':' + slot['weekday']) {
+      <button mat-button type="button" (click)="applySlot(slot)">
+        {{ weekdays[+slot['weekday']!] }} · {{ slot['label'] }} · {{ slot['starts_at'] }}{{ slot['preference_score'] ? ' · preference ' + slot['preference_score'] : '' }}
+      </button>
+    }
+  </section>
+}

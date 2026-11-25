@@ -1,0 +1,84 @@
+<section class="management-page">
+  <header class="management-heading"><div><h1>{{ registry.title }}</h1><p>Manage institution records and retain academic history.</p></div>
+    @if (can(registry.add)) { <button mat-flat-button (click)="begin()">Add record</button> }
+  </header>
+  @if (!workspace.license()?.write_allowed) { <p class="notice">Records are read-only under the current subscription.</p> }
+  @if (state.error()) { <p role="alert" class="error-message">{{ state.error() }}</p> }
+  @if (state.success()) { <p role="status" class="notice">{{ state.success() }}</p> }
+  <form class="filter-bar" (ngSubmit)="load()">
+    <label>Search <input [formControl]="search"></label>
+    @if (registry.filter?.key) {
+      <label>{{ registry.filter?.label }} <select [formControl]="filter"><option value="">All</option>
+        @for (item of registry.filter?.options ?? []; track item[0]) { <option [value]="item[0]">{{ item[1] }}</option> }</select></label>
+    }
+    @if (options()['classes']; as classes) {
+      <label>Class filter <select [formControl]="groupFilter"><option value="">All classes</option>
+        @for (item of classes; track item.id) { <option [value]="item.id">{{ item['name'] }}</option> }</select></label>
+    }
+    @if (['classes', 'sections', 'subjects', 'academic-sessions'].includes(registry.resource)) {
+      <label>Order <select [formControl]="sort"><option value="">Default</option><option value="name">Name A–Z</option>
+        <option value="-name">Name Z–A</option></select></label>
+    }
+    <button mat-button type="submit">Filter</button>
+  </form>
+  @if (registry.resource === 'academic-sessions' && auth.has('accounts.manage_admissions_policy')) {
+    @if (policy(); as form) {
+      <form class="panel management-form" [formGroup]="form" (ngSubmit)="savePolicy()">
+        <h2>Admission numbering and placement</h2>
+        @for (field of policyFields; track field.key) {
+          @if (field.type === 'checkbox') {
+            <label class="check-label"><input type="checkbox" [formControlName]="field.key"> {{ field.label }}</label>
+          } @else { <label>{{ field.label }} <input [type]="field.type || 'text'" [formControlName]="field.key"></label> }
+        }
+        <div class="button-row"><button mat-flat-button type="submit" [disabled]="form.invalid || !workspace.can('academics', 'accounts.manage_admissions_policy')">Save policy</button>
+          <button mat-button type="button" (click)="policy.set(null)">Close</button></div>
+      </form>
+    } @else { <button mat-button (click)="openPolicy()">Admission policy</button> }
+  }
+  @if (editorOpen()) {
+    <form class="panel management-form" [formGroup]="form" (ngSubmit)="save()">
+      <h2>{{ edit() ? 'Edit record' : 'New record' }}</h2>
+      <div class="field-grid">
+        @for (field of registry.fields; track field.key) {
+          @if (field.lookup) {
+            <label>{{ field.label }} <select [formControlName]="field.key" [attr.name]="field.key">
+              <option value="">{{ field.required ? 'Choose one' : 'All sessions' }}</option>
+              @for (entry of options()[field.lookup] ?? []; track entry.id) { <option [value]="entry.id">{{ entry['name'] }}</option> }
+            </select></label>
+          } @else if (field.options) {
+            <label>{{ field.label }} <select [formControlName]="field.key" [attr.name]="field.key">
+              @for (item of field.options; track item[0]) { <option [value]="item[0]">{{ item[1] }}</option> }
+            </select></label>
+          } @else if (field.type === 'checkbox') {
+            <label class="check-label"><input type="checkbox" [formControlName]="field.key" [attr.name]="field.key"> {{ field.label }}</label>
+          } @else {
+            <label>{{ field.label }} <input [type]="field.type || 'text'" [formControlName]="field.key" [attr.name]="field.key" [required]="field.required || false"></label>
+          }
+        }
+      </div>
+      @if (form.hasError('dateRange')) { <p class="error-message">End date must follow the start date.</p> }
+      @if (form.invalid && form.touched) { <p class="error-message">Complete the required fields and check their values.</p> }
+      <div class="button-row"><button mat-flat-button type="submit" [disabled]="state.loading()">Save record</button>
+        <button mat-button type="button" (click)="editorOpen.set(false)">Cancel</button></div>
+    </form>
+  }
+  @if (state.loading()) { <p role="status" class="notice">Loading records…</p> }
+  <div class="panel table-wrap">
+    <table><caption class="visually-hidden">{{ registry.title }}</caption>
+      <thead><tr>@for (column of registry.columns; track column[0]) { <th scope="col">{{ column[1] }}</th> }<th scope="col">Actions</th></tr></thead>
+      <tbody>@for (row of page()?.results ?? []; track row.id) {
+        <tr>@for (column of registry.columns; track column[0]) { <td>{{ display(row, column[0]) }}</td> }
+          <td><div class="button-row">
+            @if (can(registry.change)) {
+              <button mat-button (click)="begin(row)">Edit</button>
+              @if (registry.resource === 'academic-sessions' && row['status'] === 'active' && !row['is_current']) {
+                <button mat-button (click)="setCurrent(row)">Set current</button>
+              }
+            }
+          </div></td></tr>
+      } @empty { <tr><td [attr.colspan]="registry.columns.length + 1">No records match your filters.</td></tr> }</tbody>
+    </table>
+    <div class="button-row"><button mat-button [disabled]="!page()?.previous" (click)="load(offset - 20)">Previous</button>
+      <button mat-button [disabled]="!page()?.next" (click)="load(offset + 20)">Next</button></div>
+  </div>
+</section>

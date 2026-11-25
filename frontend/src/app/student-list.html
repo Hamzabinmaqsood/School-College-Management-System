@@ -1,0 +1,53 @@
+<section class="management-page">
+  <header class="management-heading">
+    <div><h1>{{ admissions ? 'Admissions' : 'Students' }}</h1><p>{{ admissions ? 'Review enrollment records by session.' : 'Search student records and academic placements.' }}</p></div>
+    <div class="button-row">
+      @if (auth.has(admissions ? 'accounts.export_admissions' : 'accounts.export_students')) { <a mat-button [href]="exportUrl()">Export CSV</a> }
+      @if (canAdmit()) { <a mat-flat-button routerLink="/admissions/new">{{ admissions ? 'New admission' : 'Add student' }}</a> }
+    </div>
+  </header>
+  @if (totals(); as stats) {
+    <div class="summary"><span>Total students <strong>{{ stats.total_students }}</strong></span>
+      <span>Active <strong>{{ stats.active_students }}</strong></span><span>New this session <strong>{{ stats.new_admissions }}</strong></span></div>
+  }
+  @if (!workspace.license()?.write_allowed) { <p class="notice">Read-only subscription mode. Authorized exports remain available.</p> }
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  <form [formGroup]="form" class="filter-bar" (ngSubmit)="load()">
+    <label>Search <input formControlName="search"></label>
+    @if (sessions().length) {
+      <label>Session <select formControlName="session"><option value="">All / current class</option>
+        @for (row of sessions(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }</select></label>
+    }
+    @if (classes().length) {
+      <label>Class <select formControlName="academic_class"><option value="">All</option>
+        @for (row of classes(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }</select></label>
+    }
+    @if (sections().length) {
+      <label>Section <select formControlName="section"><option value="">All</option>
+        @for (row of sectionOptions(); track row.id) { <option [value]="row.id">{{ row['name'] }}</option> }</select></label>
+    }
+    <label>Status <select formControlName="status"><option value="">All</option>
+      @for (state of statuses; track state) { <option [value]="state">{{ state }}</option> }</select></label>
+    <button mat-button type="submit">Filter</button>
+  </form>
+  @if (state.loading()) { <p role="status" class="notice">Loading records…</p> }
+  <div class="panel table-wrap"><table>
+    <caption class="visually-hidden">{{ admissions ? 'Admission register' : 'Student records' }}</caption>
+    <thead><tr><th scope="col">Admission no.</th><th scope="col">Student</th><th scope="col">Class</th><th scope="col">Section</th>
+      <th scope="col">Roll</th><th scope="col">{{ admissions ? 'Session' : 'Guardian' }}</th>
+      <th scope="col">Admission date</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (row of rows()?.results ?? []; track row.id) {
+      <tr><td>{{ row['admission_number'] }}</td><td><div class="student-name">
+        @if (row['photo_url']; as photo) { <img [src]="photo" alt="" class="student-photo"> }
+        <strong>{{ row[admissions ? 'student_name' : 'name'] }}</strong></div></td>
+      <td>{{ row['class_name'] || '—' }}</td><td>{{ row['section_name'] || '—' }}</td><td>{{ row['roll_number'] || '—' }}</td>
+      <td>{{ row[admissions ? 'session_name' : 'guardian'] || '—' }}</td>
+      <td>{{ row[admissions ? 'enrollment_date' : 'admission_date'] }}</td><td class="capitalize">{{ row['status'] }}</td>
+      <td>@if (auth.has('accounts.view_student_details')) {
+        <a mat-button [routerLink]="['/students', admissions ? row['student'] : row.id]">View profile</a>
+      }</td></tr>
+    } @empty { <tr><td colspan="9">No records match your filters.</td></tr> }</tbody>
+  </table>
+  <div class="button-row"><button mat-button [disabled]="!rows()?.previous" (click)="load(offset - 20)">Previous</button>
+    <button mat-button [disabled]="!rows()?.next" (click)="load(offset + 20)">Next</button></div></div>
+</section>

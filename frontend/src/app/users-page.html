@@ -1,0 +1,59 @@
+<section class="management-page">
+  <header class="management-heading"><div><h1>User management</h1><p>Manage institution accounts and assigned roles.</p></div>
+    @if (auth.has('accounts.add_user')) { <button mat-flat-button (click)="edit('new')">Add user</button> }
+  </header>
+  @if (page()?.summary; as counts) { <div class="summary"><span>Total <strong>{{ counts.total }}</strong></span><span>Active <strong>{{ counts.active }}</strong></span><span>Inactive <strong>{{ counts.inactive }}</strong></span></div> }
+  @if (state.error()) { <p class="error-message" role="alert">{{ state.error() }}</p> }
+  @if (state.success()) { <p class="notice" role="status">{{ state.success() }}</p> }
+  <form class="filter-bar" (ngSubmit)="load()">
+    <label>Search users <input name="search" [(ngModel)]="search"></label>
+    <label>Role <select name="role" [(ngModel)]="role"><option value="">All roles</option>
+      @for (option of choices(); track option.id) { <option [value]="option.id">{{ option.name }}</option> }</select></label>
+    <label>Status <select name="active" [(ngModel)]="active"><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></select></label>
+    <button mat-button type="submit">Filter</button>
+  </form>
+  @if (editor(); as mode) {
+    <form class="panel management-form" (ngSubmit)="save()" #userForm="ngForm">
+      <h2>{{ mode === 'new' ? 'New user' : mode === 'edit' ? 'Edit user' : mode === 'assign' ? 'Assign roles' : 'Reset password' }}</h2>
+      <div class="field-grid">
+        @if (mode === 'new' || mode === 'edit') {
+          @for (field of fields; track field[0]) { <label>{{ field[1] }} <input [name]="field[0]" [attr.name]="field[0]" [(ngModel)]="form[field[0]]"
+            [required]="field[0] === 'username'" [type]="field[0] === 'email' ? 'email' : 'text'"></label> }
+        }
+        @if (mode === 'new' || mode === 'reset') {
+          <label>Temporary password <input name="password" type="password" [(ngModel)]="form.password" autocomplete="new-password" required maxlength="256"></label>
+        }
+        @if (mode === 'assign' || (mode === 'new' && auth.has('accounts.assign_roles') && choices().length)) {
+          <label>Assigned roles <select name="roleIds" [(ngModel)]="form.role_ids" multiple>
+            @for (role of choices(); track role.id) { @if (role.active) { <option [value]="role.id">{{ role.name }}</option> } }
+          </select></label>
+        }
+      </div>
+      <div class="button-row"><button mat-flat-button type="submit" [disabled]="userForm.invalid || state.loading()">Save user</button>
+        <button mat-button type="button" (click)="editor.set(null); selected.set(null); form.password = ''">Cancel</button></div>
+    </form>
+  } @else if (selected(); as user) {
+    <section class="panel management-form"><h2>{{ user.full_name || user.username }}</h2><p>{{ user.email || 'No email' }} · {{ user.phone || 'No phone' }}</p>
+      <details open><summary>Effective permissions</summary><ul>@for (key of permissions(); track key) { <li>{{ key }}</li> } @empty { <li>No effective permissions.</li> }</ul></details>
+      <button mat-button (click)="selected.set(null)">Close details</button>
+    </section>
+  }
+  @if (state.loading()) { <p class="notice" role="status">Loading users…</p> }
+  <div class="panel table-wrap"><table><caption class="visually-hidden">Institution users</caption>
+    <thead><tr><th scope="col">Full name</th><th scope="col">Username</th><th scope="col">Email</th><th scope="col">Roles</th><th scope="col">Status</th><th scope="col">Last login</th><th scope="col">Actions</th></tr></thead>
+    <tbody>@for (user of page()?.results ?? []; track user.id) {
+      <tr><td>{{ user.full_name || '—' }}</td><td>{{ user.username }}</td><td>{{ user.email || '—' }}</td>
+        <td>@for (role of user.roles; track role.id) { <div>{{ role.name }}</div> } @empty { — }</td>
+        <td>{{ user.active ? 'Active' : 'Inactive' }}</td><td>{{ (user.last_login | date:'mediumDate') || 'Never' }}</td>
+        <td><div class="button-row">
+          @if (auth.has('accounts.view_user_details')) { <button mat-button (click)="inspect(user)">Details</button> }
+          @if (auth.has('accounts.change_user')) { <button mat-button (click)="edit('edit', user)">Edit</button> }
+          @if (auth.user()?.id !== user.id) {
+            @if (auth.has('accounts.assign_roles') && choices().length) { <button mat-button (click)="edit('assign', user)">Assign roles</button> }
+            @if (auth.has('accounts.reset_user_password')) { <button mat-button (click)="edit('reset', user)">Reset password</button> }
+            @if (auth.has('accounts.suspend_user')) { <button mat-button (click)="status(user)">{{ user.active ? 'Deactivate' : 'Activate' }}</button> }
+          }
+        </div></td></tr>
+      } @empty { <tr><td colspan="7">No users match your filters.</td></tr> }</tbody>
+  </table><div class="button-row"><button mat-button [disabled]="!page()?.previous" (click)="load(offset - 20)">Previous</button><button mat-button [disabled]="!page()?.next" (click)="load(offset + 20)">Next</button></div></div>
+</section>
